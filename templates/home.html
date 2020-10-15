@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Home</title>
+</head>
+<body>
+<h1>Welcome to the Game, {{name}}!</h1>
+Type in your Game ID to join your friends, or create a new game.
+<form action="" method="POST">
+   Game ID <input type="number" name="game_id" />
+   <button type="submit" name="submit_game_id" value="1">Submit</button>
+   <button type="submit" name="new_game" value="1">New Game</button>
+</form>
+{% with messages = get_flashed_messages() %}
+   {% if messages %}
+         {% for message in messages %}
+         <li>{{ message }}</li>
+         {% endfor %}
+   {% endif %}
+{% endwith %}
+<form action="/logout">
+    <button type="submit">Logout</button>
+</form>
+</body>
+</html>

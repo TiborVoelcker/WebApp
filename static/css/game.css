@@ -1,0 +1,55 @@
+.content_blurred
+{
+    filter: blur(20px);
+    pointer-events: none;
+    user-select: none;
+}
+
+main
+{
+    display: flex;
+}
+
+#players
+{
+    flex: 30%;
+    margin: 20px;
+}
+
+#game
+{
+    flex: 70%;
+    background-color: red;
+}
+
+.board
+{
+    max-width: 100%;
+}
+
+.player_list
+{
+    padding: 0px;
+}
+
+li
+{
+    border-style: groove;
+    list-style: none;
+    font-size: 200%;
+    display: inline-block;
+    width: 80%;
+}
+
+.player_list_icon
+{
+    display: inline;
+    height: 50px;
+    vertical-align: middle;
+    border-style: inset;
+}
+
+.policy_pile
+{
+    height: 100px;
+}

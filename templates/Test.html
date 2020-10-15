@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Game</title>
+    <link rel="stylesheet" href="css/game.css">
+    <script type="text/javascript" src = "{{ url_for('static', filename='js/app.js') }}"></script>
+    <script type="text/javascript">
+        var game_id = "{{game_id}}";
+        var player = ["{{player[0]}}", "{{player[1]}}"];
+        var roles;
+    </script>
+</head>
+<body>
+    <div class="content" id="main_game">
+        <h2>Players:</h2>
+            <section id="player_section">
+                <ul id="player_list"/>
+                <li onclick="#"> Hey</li>
+            </section>
+        <button id="button_leave_game">Leave Game</button>
+    </div>
+    <div class="popup" id="select_chancellor">
+
+    </div>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+</head>
+<body>
+<h3>Your are not logged in. Please choose a username.</h3>
+<form action="" method="POST">
+    <input type="text" name="username" placeholder="Username" required
+           autofocus inputmode="verbatim" minlength="1", maxlength="30"/>
+    <button type="submit">Login</button>
+</form>
+{% with messages = get_flashed_messages() %}
+   {% if messages %}
+         {% for message in messages %}
+         <li>{{ message }}</li>
+         {% endfor %}
+   {% endif %}
+{% endwith %}
+</body>
+</html>

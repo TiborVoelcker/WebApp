@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Lobby</title>
+    <script type="text/javascript" src = "{{ url_for('static', filename='js/lobby.js') }}"></script>
+    <script type="text/javascript">
+        var game_id = "{{game_id}}";
+        var player = ["{{player[0]}}", "{{player[1]}}"];
+    </script>
+</head>
+<body>
+<h2>Players:</h2>
+    <section id="player_section"></section>
+{% if game_leader %}
+    <h2>Choose the game board:</h2>
+    <input type="radio" name="board" value="1" checked>5-6 players</input>
+    <input type="radio" name="board" value="2">7-8 players</input>
+    <input type="radio" name="board" value="3">9-10 players</input>
+    <button id="button_start_game">Start game</button>
+{% endif %}
+</body>
+</html>
