@@ -3,7 +3,7 @@ from django.db import models
 
 # Create your models here.
 class Game(models.Model):
-    codeword = models.CharField(max_length=50)
+    slug = models.CharField(max_length=50)
     current_president = models.OneToOneField('Player', on_delete=models.CASCADE, related_name='is_president_from', null=True)
     current_chancellor = models.OneToOneField('Player', on_delete=models.CASCADE, related_name='is_chancellor_from', null=True)
     turn_no = models.IntegerField(default=1)
@@ -12,7 +12,7 @@ class Game(models.Model):
     remaining_policies = models.CharField(max_length=200, default='[1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]')
 
     def __str__(self):
-        return self.codeword
+        return self.slug
 
 
 class Player(models.Model): # TODO: maybe connect with User model or replace it?

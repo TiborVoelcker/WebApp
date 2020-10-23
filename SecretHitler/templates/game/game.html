@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    {% load static %}
+    <script src="{% static 'game/app.js' %}"></script>
+    <title>Secret Hitler</title>
+</head>
+<body>
+    {% if game %}
+        <p>{{ game.slug }}</p>
+        <ul>
+        {% for player in game.players.all %}
+            <li><a>{{ player.name }}</a></li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>Something went wrong.</p>
+    {% endif %}
+</body>
+</html>
+
+
+
