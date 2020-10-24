@@ -4,7 +4,7 @@ from flask_login import UserMixin
 
 class Game(db.Model):
     slug = db.Column(db.String(64), unique=True, nullable=False, index=True, primary_key=True)
-    players = db.relationship('Player', backref='current_game', lazy=True)
+    players = db.relationship('Player', backref='current_game', lazy="dynamic")
     current_president = db.relationship('Player', backref='president_from', lazy=True, uselist=False)
     current_chancellor = db.relationship('Player', backref='chancellor_from', lazy=True, uselist=False)
     last_president = db.relationship('Player', backref='last_president_from', lazy=True, uselist=False)

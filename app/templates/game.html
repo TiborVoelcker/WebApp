@@ -7,9 +7,9 @@
 {% block body %}
     {% if game %}
         <p>{{ game.slug }}</p>
-        <ul>
+        <ul id="players">
         {% for player in game.players %}
-            <li><a>{{ player.name }}</a></li>
+            <li id="{{ player.id }}"><a>{{ player.name }}</a></li>
         {% endfor %}
         </ul>
     {% else %}
