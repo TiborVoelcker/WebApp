@@ -55,11 +55,15 @@ def logout():
     return redirect(url_for('index'))
 
 
+@app.route('/join/<string:slug>')
+def join(slug):
+    return redirect(url_for('game', slug=slug))
+
+
 @app.route('/game/<string:slug>')
 @login_required
 def game(slug):
     g = Game.query.get_or_404(slug)
     current_user.current_game = g
     db.session.commit()
-
     return render_template('game.html', game=g)
