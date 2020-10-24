@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
-    {% load static %}
-    <script src="{% static 'game/app.js' %}"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I=" crossorigin="anonymous"></script>
+    <script type="text/javascript" src = "{{ url_for('static', filename='app.js') }}"></script>
     <title>Secret Hitler</title>
 </head>
 <body>
     {% if game %}
         <p>{{ game.slug }}</p>
         <ul>
-        {% for player in game.players.all %}
+        {% for player in game.players %}
             <li><a>{{ player.name }}</a></li>
         {% endfor %}
         </ul>
