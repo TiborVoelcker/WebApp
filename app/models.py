@@ -1,4 +1,5 @@
-from app import db
+from app import db, login
+from flask_login import UserMixin
 
 
 class Game(db.Model):
@@ -21,7 +22,7 @@ class Game(db.Model):
         return {key: self.__dict__[key] for key in self.__dict__ if not key.startswith("_")}
 
 
-class Player(db.Model):
+class Player(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(32), index=True)
     game = db.Column(db.String(64), db.ForeignKey('game.slug'))
@@ -29,3 +30,8 @@ class Player(db.Model):
 
     def __repr__(self):
         return f"User {self.name} (ID: {self.id})"
+
+
+@login.user_loader
+def load_user(id):
+    return Player.query.get(int(id))
