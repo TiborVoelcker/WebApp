@@ -1,1 +1,17 @@
 {% extends "base.html" %}
+
+{% block body %}
+    <h1>Welcome!</h1>
+    <form action="" method="post" novalidate>
+        {{ form.hidden_tag() }}
+        <p>
+            {{ form.game_slug.label }}<br>
+            {{ form.game_slug(size=32) }}
+            {% for error in form.game_slug.errors %}
+                <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>{{ form.submit() }}</p>
+        <p>{{ form.new_game() }}</p>
+    </form>
+{% endblock %}

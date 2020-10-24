@@ -5,12 +5,28 @@ from werkzeug.urls import url_parse
 
 from .models import Game, Player
 from .forms import LoginForm, GameForm
+from .helper import make_slug
 
 
-@app.route('/')
-@app.route('/index')
+@app.route('/', methods=['GET', 'POST'])
+@app.route('/index', methods=['GET', 'POST'])
 def index():
     form = GameForm()
+    if form.is_submitted():
+        if form.submit.data and form.validate():
+            g = Game.query.get(form.game_slug.data)
+            if g:
+                return redirect(url_for('game', slug=form.game_slug.data))
+            else:
+                flash("Game ID is invalid.")
+                return redirect(url_for('index'))
+        if form.new_game.data:
+            slug = make_slug()
+            g = Game(slug=slug)
+            db.session.add(g)
+            db.session.commit()
+            return redirect(url_for('game', slug=slug))
+
     return render_template('index.html', title="Home", form=form)
 
 
@@ -39,11 +55,11 @@ def logout():
     return redirect(url_for('index'))
 
 
-@login_required
 @app.route('/game/<string:slug>')
+@login_required
 def game(slug):
     g = Game.query.get_or_404(slug)
-    p = Player.query.get(session["ID"])
-    g.players.append(p)
+    current_user.current_game = g
+    db.session.commit()
 
     return render_template('game.html', game=g)
