@@ -1,4 +1,4 @@
-var socket = io.connect();
+const socket = io.connect();
 
 socket.on('player joined', function(data) {
     if (!document.getElementById(data.id)) {
@@ -17,4 +17,8 @@ socket.on('player left', function(data) {
         var player = document.getElementById(data.id);
         player.parentNode.removeChild(player);
     }
+});
+
+socket.on("error", function(data) {
+   console.log(data)
 });

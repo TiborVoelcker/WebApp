@@ -1,11 +1,11 @@
-from app import app, db
-from flask import render_template, session, flash, redirect, url_for, request
+from flask import render_template, flash, redirect, url_for, request
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse
 
-from .models import Game, Player
+from app import app, db
 from .forms import LoginForm, GameForm
 from .helper import make_slug
+from .models import Game, Player
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -64,6 +64,4 @@ def join(slug):
 @login_required
 def game(slug):
     g = Game.query.get_or_404(slug)
-    current_user.current_game = g
-    db.session.commit()
     return render_template('game.html', game=g)
