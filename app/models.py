@@ -44,6 +44,8 @@ class Game(db.Model):
         select = choices(self.__remaining_policies, k=3)
         for item in select:
             self.__remaining_policies.remove(item)
+        if len(self.__remaining_policies) < 3:
+            self.__remaining_policies = [1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         return select
 
 
