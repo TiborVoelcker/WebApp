@@ -74,7 +74,8 @@ def handle_elect_chancellor(vote):
             if g.everybody_voted():
                 if g.evaluate_votes():
                     g.current_state = "policies_president"
-                    # ToDo: send policies to president
+                    emit("new chancellor", room=g.slug)
+                    emit("choose policies", g.select_policies(), room=g.current_president.sid)
                 else:
                     g.current_state = "nomination"
                     g.advance_president()
@@ -84,6 +85,38 @@ def handle_elect_chancellor(vote):
             emit('error', 'You already voted!')
     else:
         emit('error', 'You cannot elect a chancellor right now!')
+
+
+@socketio.on('policies chosen')
+@login_required
+def handle_policies_chosen(policies):
+    g = current_user.current_game
+    if g.current_state == "policies_president":
+        if g.current_president == current_user:
+            if all(policy in [0, 1] for policy in policies) and len(policies) == 2:
+                emit('choose polices', policies, room=g.current_chancellor.sid)
+            else:
+                emit('error', 'Your selection is invalid!')
+        else:
+            emit('error', 'Only the president can elect polices right now!')
+    else:
+        emit('error', 'You cannot elect policies right now!')
+    if g.current_state == "policies_chancellor":
+        if g.current_chancellor == current_user:
+            if all(policy in [0, 1] for policy in policies) and len(policies) == 1:
+                g.elected_polices.append(policies[0])
+                g.current_state = "nomination"
+                g.last_president = g.current_president
+                g.last_chancellor = g.last_chancellor
+                g.advance_president()
+                g.current_chancellor = None
+                emit("nomination", room=g.slug)
+            else:
+                emit('error', 'Your selection is invalid!')
+        else:
+            emit('error', 'Only the chancellor can elect polices right now!')
+    else:
+        emit('error', 'You cannot elect policies right now!')
 
 
 @socketio.on_error()

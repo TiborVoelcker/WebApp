@@ -1,3 +1,5 @@
+from random import choices
+
 from flask_login import UserMixin
 
 from app import db, login
@@ -37,6 +39,12 @@ class Game(db.Model):
             self.current_president = self.players[i+1]
         except IndexError:
             self.current_president = self.players[0]
+
+    def get_policies(self):
+        select = choices(self.__remaining_policies, k=3)
+        for item in select:
+            self.__remaining_policies.remove(item)
+        return select
 
 
 class Player(db.Model, UserMixin):
