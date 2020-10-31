@@ -5,7 +5,7 @@ from flask import request
 from flask_login import current_user, login_required
 from flask_socketio import emit, join_room, leave_room, close_room
 
-from . import socketio, db
+from . import socketio, db, app
 from .models import Game
 
 
@@ -19,7 +19,7 @@ def handle_connect():
     current_user.current_game = g
     emit("player joined", {"name": current_user.name, "id": current_user.id}, room=g.slug)
     db.session.commit()
-    print(f"Player {current_user.name} connected.")
+    app.logger.info(f"{g.slug} - Player {current_user.name} connected.")
 
 
 @socketio.on('disconnect')
@@ -34,7 +34,7 @@ def handle_disconnect():
         close_room(g.slug)
         db.session.delete(g)
     db.session.commit()
-    print(f"Player {current_user.name} disconnected.")
+    app.logger.info(f"{g.slug} - Player {current_user.name} disconnected.")
 
 
 @socketio.on('start game')
@@ -44,6 +44,7 @@ def handle_game_start():
     g.current_state = "nomination"
     g.current_president = random.choice(g.players)
     emit("nomination", room=g.slug)
+    app.logger.info(f"{g.slug} - Game {g.slug} started.")
 
 
 @socketio.on('nominate chancellor')
@@ -56,6 +57,7 @@ def handle_nominate_chancellor(player):
                 g.current_state = "election"
                 g.current_chancellor = player
                 emit("election", player, room=g.slug)
+                app.logger.info(f"{g.slug} - Player {player.name} was nominated.")
             else:
                 emit("error", 'Invalid Nomination! (Player is not in the game or was last elected)')
         else:
@@ -74,13 +76,15 @@ def handle_elect_chancellor(vote):
             if g.everybody_voted():
                 if g.evaluate_votes():
                     g.current_state = "policies_president"
-                    emit("new chancellor", room=g.slug)
+                    emit("new chancellor", g.current_chancellor, room=g.slug)
                     emit("choose policies", g.select_policies(), room=g.current_president.sid)
+                    app.logger.info(f"{g.slug} - Player {g.current_chancellor} was elected.")
                 else:
                     g.current_state = "nomination"
                     g.advance_president()
                     g.current_chancellor = None
                     emit("nomination", room=g.slug)
+                    app.logger.info(f"{g.slug} - Nomination was rejected.")
         else:
             emit('error', 'You already voted!')
     else:
@@ -95,6 +99,7 @@ def handle_policies_chosen(policies):
         if g.current_president == current_user:
             if all(policy in [0, 1] for policy in policies) and len(policies) == 2:
                 emit('choose polices', policies, room=g.current_chancellor.sid)
+                app.logger.info(f"{g.slug} - The president chose {policies}.")
             else:
                 emit('error', 'Your selection is invalid!')
         else:
@@ -111,6 +116,7 @@ def handle_policies_chosen(policies):
                 g.advance_president()
                 g.current_chancellor = None
                 emit("nomination", room=g.slug)
+                app.logger.info(f"{g.slug} - The president chose {policies[0]}.")
             else:
                 emit('error', 'Your selection is invalid!')
         else:
