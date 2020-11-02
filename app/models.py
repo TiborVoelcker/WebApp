@@ -1,6 +1,7 @@
 from random import choices
 
 from flask_login import UserMixin
+from flask_socketio import join_room
 
 from app import db, login
 
@@ -48,12 +49,25 @@ class Game(db.Model):
             self.__remaining_policies = [1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         return select
 
+    def make_roles(self):
+        if len(self.players) > 10 or len(self.players) < 5:
+            return False
+        num_liberals = len(self.players) // 2 + 1
+        roles = ["liberal"] * num_liberals + ["facsist"] * (len(self.players) - 1 - num_liberals) + ["hitler"]
+        for player in self.players:
+            player.set_role(roles.pop())
+        return True
+
+    def get_fascists(self):
+        return [player for player in self.player if player.get_role() == "fascist"]
+
 
 class Player(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     sid = db.Column(db.Integer)
     name = db.Column(db.String(32), index=True)
     game = db.Column(db.String(64), db.ForeignKey('game.slug'))
+    __role = db.Column(db.String(16))
     __voted = db.Column(db.Boolean, nullable=True, default=None)
 
     def __repr__(self):
@@ -67,6 +81,17 @@ class Player(db.Model, UserMixin):
             self.__voted = vote
         else:
             raise TypeError(f"Type of the vote needs to be None or Bool (was: {type(vote)})!")
+
+    def set_role(self, role):
+        if role == "fascist" or role == "liberal" or role == "hitler":
+            self.__role = role
+            if role == "fascist":
+                join_room(f"{self.game.slug} - fascist", sid=self.sid)
+        else:
+            raise TypeError(f"Role was invalid! ({self.role})")
+
+    def get_role(self):
+        return self.__role
 
 
 @login.user_loader

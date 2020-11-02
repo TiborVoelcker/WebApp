@@ -41,10 +41,14 @@ def handle_disconnect():
 @login_required
 def handle_game_start():
     g = current_user.current_game
-    g.current_state = "nomination"
-    g.current_president = random.choice(g.players)
-    emit("nomination", room=g.slug)
-    app.logger.info(f"{g.slug} - Game {g.slug} started.")
+    if g.make_roles():
+        g.current_state = "nomination"
+        g.current_president = random.choice(g.players)
+        emit("nomination", room=g.slug)
+        app.logger.info(f"{g.slug} - Game {g.slug} started.")
+        emit("fascists", g.get_fascists(), room=f"{g.slug} - fascist")
+    else:
+        emit("error", f'The number of players need to be between 5 and 10 players! (currently {len(g.players)})')
 
 
 @socketio.on('nominate chancellor')
@@ -75,10 +79,13 @@ def handle_elect_chancellor(vote):
             current_user.set_vote(vote)
             if g.everybody_voted():
                 if g.evaluate_votes():
-                    g.current_state = "policies_president"
-                    emit("new chancellor", g.current_chancellor, room=g.slug)
-                    emit("choose policies", g.select_policies(), room=g.current_president.sid)
-                    app.logger.info(f"{g.slug} - Player {g.current_chancellor} was elected.")
+                    if g.elected_polices.count(1) >= 3 and g.current_chancellor.role == "hitler":
+                        emit("game ended", "fascist", room=g.slug)
+                    else:
+                        g.current_state = "policies_president"
+                        emit("new chancellor", g.current_chancellor, room=g.slug)
+                        emit("choose policies", g.select_policies(), room=g.current_president.sid)
+                        app.logger.info(f"{g.slug} - Player {g.current_chancellor} was elected.")
                 else:
                     g.current_state = "nomination"
                     g.advance_president()
@@ -109,14 +116,20 @@ def handle_policies_chosen(policies):
     if g.current_state == "policies_chancellor":
         if g.current_chancellor == current_user:
             if all(policy in [0, 1] for policy in policies) and len(policies) == 1:
-                g.elected_polices.append(policies[0])
-                g.current_state = "nomination"
-                g.last_president = g.current_president
-                g.last_chancellor = g.last_chancellor
-                g.advance_president()
-                g.current_chancellor = None
-                emit("nomination", room=g.slug)
-                app.logger.info(f"{g.slug} - The president chose {policies[0]}.")
+                policy = policies[0]
+                g.elected_polices.append(policy)
+                if g.elected_polices.count(1) == 6:
+                    emit("game ended", "fascist", room=g.slug)
+                elif g.elected_polices.count(0) == 5:
+                    emit("game ended", "liberals", room=g.slug)
+                else:
+                    g.current_state = "nomination"
+                    g.last_president = g.current_president
+                    g.last_chancellor = g.last_chancellor
+                    g.advance_president()
+                    g.current_chancellor = None
+                    emit("nomination", room=g.slug)
+                    app.logger.info(f"{g.slug} - The president chose {policies[0]}.")
             else:
                 emit('error', 'Your selection is invalid!')
         else:
