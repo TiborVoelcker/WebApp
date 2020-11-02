@@ -47,6 +47,8 @@ def handle_game_start():
         emit("nomination", room=g.slug)
         app.logger.info(f"{g.slug} - Game {g.slug} started.")
         emit("roles", g.get_roles(), room=f"{g.slug} - fascist")
+        if len(g.players) < 7:
+            emit("roles", g.get_roles(), room=g.get_hitler().sid)
     else:
         emit("error", f'The number of players need to be between 5 and 10 players! (currently {len(g.players)})')
 

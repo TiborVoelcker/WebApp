@@ -61,6 +61,12 @@ class Game(db.Model):
     def get_roles(self):
         return {player: player.get_role for player in self.players}
 
+    def get_hitler(self):
+        for player in self.players:
+            if player.get_role() == "hitler":
+                return player
+        raise RuntimeError("No Hitler in current game found!")
+
 
 class Player(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
