@@ -58,8 +58,8 @@ class Game(db.Model):
             player.set_role(roles.pop())
         return True
 
-    def get_fascists(self):
-        return [player for player in self.player if player.get_role() == "fascist"]
+    def get_roles(self):
+        return {player: player.get_role for player in self.players}
 
 
 class Player(db.Model, UserMixin):
