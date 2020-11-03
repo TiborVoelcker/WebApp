@@ -41,16 +41,19 @@ def handle_disconnect():
 @login_required
 def handle_game_start():
     g = current_user.current_game
-    if g.make_roles():
-        g.current_state = "nomination"
-        g.current_president = random.choice(g.players)
-        emit("nomination", room=g.slug)
-        app.logger.info(f"{g.slug} - Game {g.slug} started.")
-        emit("roles", g.get_roles(), room=f"{g.slug} - fascist")
-        if len(g.players) < 7:
-            emit("roles", g.get_roles(), room=g.get_hitler().sid)
+    if g.current_state == "pre game":
+        if g.make_roles():
+            g.current_state = "nomination"
+            g.current_president = random.choice(g.players)
+            emit("nomination", room=g.slug)
+            app.logger.info(f"{g.slug} - Game {g.slug} started.")
+            emit("roles", g.get_roles(), room=f"{g.slug} - fascist")
+            if len(g.players) < 7:
+                emit("roles", g.get_roles(), room=g.get_hitler().sid)
+        else:
+            emit("error", f'The number of players need to be between 5 and 10 players! (currently {len(g.players)})')
     else:
-        emit("error", f'The number of players need to be between 5 and 10 players! (currently {len(g.players)})')
+        emit("error", 'The game already started!')
 
 
 @socketio.on('nominate chancellor')
