@@ -32,6 +32,7 @@ def handle_connect():
     emit("player joined", {"name": current_user.name, "id": current_user.id}, room=g.slug)
     db.session.commit()
     app.logger.info(f"{g.slug} - Player {current_user.name} connected.")
+    return True
 
 
 @socketio.on('disconnect')
@@ -47,6 +48,7 @@ def handle_disconnect():
         db.session.delete(g)
     db.session.commit()
     app.logger.info(f"{g.slug} - Player {current_user.name} disconnected.")
+    return True
 
 
 @socketio.on('start game')
@@ -76,10 +78,11 @@ def handle_nomination(g, nomination):
             g.current_chancellor = nomination
             emit("new nomination", nomination, room=g.slug)
             app.logger.info(f"{g.slug} - Player {nomination.name} was nominated.")
+            return True
         else:
-            emit("error", 'Invalid Nomination! (Player is not in the game or was last elected)')
+            return False, 'Invalid Nomination! (Player is not in the game or was last elected)'
     else:
-        emit("error", 'Only the president can nominate a chancellor!')
+        return False, 'Only the president can nominate a chancellor!'
 
 
 @socketio.on('election')
@@ -105,11 +108,12 @@ def handle_election(g, vote):
                 emit("new president", g.current_president, room=g.slug)
                 app.logger.info(f"{g.slug} - Nomination was rejected.")
             g.clear_votes()
+        return True
     else:
-        emit('error', 'You already voted!')
+        return False, 'You already voted!'
 
 
-@socketio.on('policies_president')
+@socketio.on('policies president')
 @login_required
 @check_game_state("policies_president")
 def handle_policies_president(g, policies):
@@ -119,13 +123,14 @@ def handle_policies_president(g, policies):
             emit('president chose policies', room=g.slug)
             emit('choose polices', policies, room=g.current_chancellor.sid)
             app.logger.info(f"{g.slug} - The president chose {policies}.")
+            return True
         else:
-            emit('error', 'Your selection is invalid!')
+            return False, 'Your selection is invalid!'
     else:
-        emit('error', 'Only the president can elect polices right now!')
+        return False, 'Only the president can elect polices right now!'
 
 
-@socketio.on('policies_chancellor')
+@socketio.on('policies chancellor')
 @login_required
 @check_game_state("policies_chancellor")
 def handle_chancellor_policy_chosen(g, policy):
@@ -147,10 +152,11 @@ def handle_chancellor_policy_chosen(g, policy):
                 g.advance_president()
                 g.current_chancellor = None
                 emit("new president", g.current_president, room=g.slug)
+            return True
         else:
-            emit('error', 'Your selection is invalid!')
+            return False, 'Your selection is invalid!'
     else:
-        emit('error', 'Only the chancellor can elect polices right now!')
+        return False, 'Only the chancellor can elect polices right now!'
 
 
 @socketio.on_error()
