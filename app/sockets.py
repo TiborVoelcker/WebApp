@@ -6,19 +6,8 @@ from flask_login import current_user, login_required
 from flask_socketio import emit, join_room, leave_room, close_room
 
 from . import socketio, db, app
+from .helper import check_game_state, dict_to_player, player_to_dict
 from .models import Game
-
-
-def check_game_state(state):
-    def wrapper(func):
-        def inner(*args):
-            g = current_user.current_game
-            if g.current_state == state:
-                return func(g, *args)
-            else:
-                return False, 'You cannot do that right now!'
-        return inner
-    return wrapper
 
 
 @socketio.on('connect')
@@ -29,7 +18,7 @@ def handle_connect():
     g = Game.query.get(slug)
     join_room(g.slug)
     current_user.current_game = g
-    emit("player joined", {"name": current_user.name, "id": current_user.id}, room=g.slug)
+    emit("player joined", player_to_dict(current_user), room=g.slug)
     db.session.commit()
     app.logger.info(f"{g.slug} - Player {current_user.name} connected.")
     return True
@@ -42,7 +31,7 @@ def handle_disconnect():
     leave_room(g.slug)
     current_user.current_game = None
     if g.players:
-        emit("player left", {"name": current_user.name, "id": current_user.id}, room=g.slug)
+        emit("player left", player_to_dict(current_user), room=g.slug)
     else:
         close_room(g.slug)
         db.session.delete(g)
@@ -58,7 +47,7 @@ def handle_start_game(g):
     if g.make_roles():
         g.current_state = "nomination"
         g.current_president = random.choice(g.players)
-        emit("new president", g.current_president, room=g.slug)
+        emit("new president", player_to_dict(g.current_president), room=g.slug)
         app.logger.info(f"{g.slug} - Game started.")
         emit("roles", g.get_roles(), room=f"{g.slug} - fascist")
         if len(g.players) < 7:
@@ -72,11 +61,12 @@ def handle_start_game(g):
 @login_required
 @check_game_state("nomination")
 def handle_nomination(g, nomination):
+    nomination = dict_to_player(nomination)
     if g.current_president == current_user:
         if nomination in g.players and not nomination == g.last_president and not nomination == g.last_chancellor:
             g.current_state = "election"
             g.current_chancellor = nomination
-            emit("new nomination", nomination, room=g.slug)
+            emit("new nomination", player_to_dict(nomination), room=g.slug)
             app.logger.info(f"{g.slug} - Player {nomination.name} was nominated.")
             return True
         else:
@@ -98,14 +88,14 @@ def handle_election(g, vote):
                     emit("game ended", "fascist", room=g.slug)
                 else:
                     g.current_state = "policies_president"
-                    emit("new chancellor", g.current_chancellor, room=g.slug)
+                    emit("new chancellor", player_to_dict(g.current_chancellor), room=g.slug)
                     emit("choose policies", g.select_policies(), room=g.current_president.sid)
                     app.logger.info(f"{g.slug} - Player {g.current_chancellor} was elected.")
             else:
                 g.current_state = "nomination"
                 g.advance_president()
                 g.current_chancellor = None
-                emit("new president", g.current_president, room=g.slug)
+                emit("new president", player_to_dict(g.current_president), room=g.slug)
                 app.logger.info(f"{g.slug} - Nomination was rejected.")
             g.clear_votes()
         return True
@@ -151,7 +141,7 @@ def handle_chancellor_policy_chosen(g, policy):
                 g.last_chancellor = g.last_chancellor
                 g.advance_president()
                 g.current_chancellor = None
-                emit("new president", g.current_president, room=g.slug)
+                emit("new president", player_to_dict(g.current_president), room=g.slug)
             return True
         else:
             return False, 'Your selection is invalid!'
@@ -161,4 +151,5 @@ def handle_chancellor_policy_chosen(g, policy):
 
 @socketio.on_error()
 def handle_error(e):
-    pass
+    emit('error', e)
+    raise e

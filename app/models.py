@@ -53,11 +53,12 @@ class Game(db.Model):
     def make_roles(self):
         if len(self.players) > 10 or len(self.players) < 5:
             return False
-        num_liberals = len(self.players) // 2 + 1
-        roles = ["liberal"] * num_liberals + ["facsist"] * (len(self.players) - 1 - num_liberals) + ["hitler"]
-        for player in self.players:
-            player.set_role(roles.pop())
-        return True
+        else:
+            num_liberals = len(self.players) // 2 + 1
+            roles = ["liberal"] * num_liberals + ["fascist"] * (len(self.players) - 1 - num_liberals) + ["hitler"]
+            for player in self.players:
+                player.set_role(roles.pop())
+            return True
 
     def get_roles(self):
         return {player: player.get_role for player in self.players}
@@ -93,7 +94,7 @@ class Player(db.Model, UserMixin):
         if role == "fascist" or role == "liberal" or role == "hitler":
             self.__role = role
             if role == "fascist":
-                join_room(f"{self.game.slug} - fascist", sid=self.sid)
+                join_room(f"{self.current_game.slug} - fascist", sid=self.sid)
         else:
             raise TypeError(f"Role was invalid! ({self.role})")
 
