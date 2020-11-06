@@ -61,7 +61,7 @@ class Game(db.Model):
             return True
 
     def get_roles(self):
-        return {player: player.get_role for player in self.players}
+        return {player.id: player.get_role() for player in self.players}
 
     def get_hitler(self):
         for player in self.players:
