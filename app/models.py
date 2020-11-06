@@ -9,6 +9,7 @@ from app import db, login
 class Game(db.Model):
     slug = db.Column(db.String(64), unique=True, nullable=False, index=True, primary_key=True)
     players = db.relationship('Player', backref='current_game', foreign_keys='[Player.game]')
+    settings = db.Column(db.Integer, db.ForeignKey('settings.id'))
     current_president = db.Column(db.Integer, db.ForeignKey('player.id'))
     current_chancellor = db.Column(db.Integer, db.ForeignKey('player.id'))
     last_president = db.Column(db.Integer, db.ForeignKey('player.id'))
@@ -98,6 +99,10 @@ class Player(db.Model, UserMixin):
 
     def get_role(self):
         return self.__role
+
+
+class Settings(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
 
 
 @login.user_loader
