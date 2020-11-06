@@ -1,5 +1,16 @@
 const socket = io.connect();
 
+document.addEventListener("DOMContentLoaded", function(event) {
+    console.log("DOM fully loaded and parsed");
+    document.getElementById("start_game").addEventListener('click', function (e) {
+        console.log("starting game");
+        socket.emit("start game", (flag, message) => {
+            if (flag) {document.getElementById("pre_game").classList.toggle("active")}
+            else if (flag) {console.log(message);}
+        })
+    });
+});
+
 socket.on('player joined', function(data) {
     if (!document.getElementById(data.id)) {
         var players = document.getElementById("players");
@@ -19,6 +30,10 @@ socket.on('player left', function(data) {
     }
 });
 
+socket.on('')
+
 socket.on("error", function(data) {
    console.log(data)
 });
+
+//ToDo: implement basic featues
