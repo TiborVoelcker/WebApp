@@ -18,4 +18,4 @@ socketio = SocketIO(app)
 login = LoginManager(app)
 login.login_view = 'login'
 
-from app import routes, models, sockets, logs
+from app import routes, models, sockets, logs, errors
