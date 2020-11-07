@@ -1,6 +1,8 @@
+import logging
 import random
 
 from flask import Flask
+from flask.logging import default_handler
 from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_socketio import SocketIO
@@ -18,4 +20,11 @@ socketio = SocketIO(app)
 login = LoginManager(app)
 login.login_view = 'login'
 
-from app import routes, models, sockets, logs, errors
+if app.debug:
+    app.logger.removeHandler(default_handler)
+    ch = logging.StreamHandler()
+    formatter = logging.Formatter('%(message)s')
+    ch.setFormatter(formatter)
+    app.logger.addHandler(ch)
+
+from app import routes, models, sockets, errors
