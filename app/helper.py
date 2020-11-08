@@ -1,26 +1,9 @@
 import functools
-import json
-import os
-import random
 
 from flask_login import current_user
 from flask_socketio import disconnect
 
-from .models import Game
 from .models import Player
-
-basedir = os.path.abspath(os.path.dirname(__file__))
-
-
-def make_slug():
-    d = os.path.join(basedir, 'short_words.json')
-    with open(d) as f:
-        words = json.load(f)
-        slug = "_".join(random.choices(words, k=3))
-    if Game.query.get(slug):
-        slug = make_slug()
-
-    return slug
 
 
 def authenticated_only(f):

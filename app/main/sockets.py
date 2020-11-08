@@ -4,9 +4,10 @@ from flask import request
 from flask_login import current_user
 from flask_socketio import emit, join_room, leave_room, close_room
 
-from . import socketio, db, app
-from .helper import check_game_state, dict_to_player, player_to_dict, authenticated_only
-from .models import Game
+from app import socketio, db
+from app.helper import check_game_state, dict_to_player, player_to_dict, authenticated_only
+from app.main import bp
+from app.models import Game
 
 
 @socketio.on('connect')
@@ -17,9 +18,9 @@ def handle_connect():
         g = Game.query.get(slug)
         join_room(g.slug)
         current_user.current_game = g
-        emit("player joined", player_to_dict(current_user), room=g.slug)
         db.session.commit()
-        app.logger.info(f"{g.slug} - Player {current_user.name} connected.")
+        emit("player joined", player_to_dict(current_user), room=g.slug)
+        bp.logger.info(f"{g.slug} - Player {current_user.name} connected.")
         return True
     else:
         return False
@@ -37,7 +38,7 @@ def handle_disconnect():
         close_room(g.slug)
         db.session.delete(g)
     db.session.commit()
-    app.logger.info(f"{g.slug} - Player {current_user.name} disconnected.")
+    bp.logger.info(f"{g.slug} - Player {current_user.name} disconnected.")
     return True
 
 
@@ -49,7 +50,7 @@ def handle_start_game(g):
         g.current_state = "nomination"
         g.current_president = random.choice(g.players)
         emit("new president", player_to_dict(g.current_president), room=g.slug)
-        app.logger.info(f"{g.slug} - Game started.")
+        bp.logger.info(f"{g.slug} - Game started.")
         emit("roles", g.get_roles(), room=f"{g.slug} - fascist")
         if len(g.players) < 7:
             emit("roles", g.get_roles(), room=g.get_hitler().sid)
@@ -68,7 +69,7 @@ def handle_nomination(g, nomination):
             g.current_state = "election"
             g.current_chancellor = nomination
             emit("new nomination", player_to_dict(nomination), room=g.slug)
-            app.logger.info(f"{g.slug} - Player {nomination.name} was nominated.")
+            bp.logger.info(f"{g.slug} - Player {nomination.name} was nominated.")
             return True
         else:
             return False, 'Invalid Nomination! (Player is not in the game or was last elected)'
@@ -91,13 +92,13 @@ def handle_election(g, vote):
                     g.current_state = "policies_president"
                     emit("new chancellor", player_to_dict(g.current_chancellor), room=g.slug)
                     emit("choose policies", g.select_policies(), room=g.current_president.sid)
-                    app.logger.info(f"{g.slug} - Player {g.current_chancellor} was elected.")
+                    bp.logger.info(f"{g.slug} - Player {g.current_chancellor} was elected.")
             else:
                 g.current_state = "nomination"
                 g.advance_president()
                 g.current_chancellor = None
                 emit("new president", player_to_dict(g.current_president), room=g.slug)
-                app.logger.info(f"{g.slug} - Nomination was rejected.")
+                bp.logger.info(f"{g.slug} - Nomination was rejected.")
             g.clear_votes()
         return True
     else:
@@ -113,7 +114,7 @@ def handle_policies_president(g, policies):
             g.current_state = "policies_chancellor"
             emit('president chose policies', room=g.slug)
             emit('choose polices', policies, room=g.current_chancellor.sid)
-            app.logger.info(f"{g.slug} - The president chose {policies}.")
+            bp.logger.info(f"{g.slug} - The president chose {policies}.")
             return True
         else:
             return False, 'Your selection is invalid!'
@@ -129,7 +130,7 @@ def handle_chancellor_policy_chosen(g, policy):
         if policy in [0, 1]:
             g.elected_polices.append(policy)
             emit("chancellor chose policy", policy, room=g.slug)
-            app.logger.info(f"{g.slug} - New policy enacted: {policy}")
+            bp.logger.info(f"{g.slug} - New policy enacted: {policy}")
             if g.elected_polices.count(1) == 6:
                 g.current_state = "post_game"
                 emit("game ended", "fascist", room=g.slug)

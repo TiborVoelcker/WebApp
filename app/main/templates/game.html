@@ -3,13 +3,13 @@
 {% block scripts %}
 <script type="text/javascript">const game_slug = "{{ game.slug }}"</script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I=" crossorigin="anonymous"></script>
-<script type="text/javascript" src = "{{ url_for('static', filename='app.js') }}"></script>
+<script type="text/javascript" src = "{{ url_for('main.static', filename='app.js') }}"></script>
 {% endblock %}
 
 {% block body %}
 <main id="game">
     {% if game %}
-    <p href="{{ url_for('game', slug=game.slug) }}">Send this link to invite friends, or have them enter the code manually: {{ url_for('join', slug=game.slug, _external=True) }}</p>
+    <p href="{{ url_for('.game', slug=game.slug) }}">Send this link to invite friends, or have them enter the code manually: {{ url_for('.join', slug=game.slug, _external=True) }}</p>
     <ul id="players">
         {% for player in game.players %}
         <li id="{{ player.id }}"><a>{{ player.name }}</a></li>

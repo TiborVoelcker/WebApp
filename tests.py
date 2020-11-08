@@ -1,20 +1,26 @@
 import unittest
 
-from app import app, db, socketio
+from app import create_app, db, socketio
 from app.models import Game, Player
+from config import Config
+
+
+class TestConfig(Config):
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = 'sqlite://'
 
 
 class GameCase(unittest.TestCase):
     def setUp(self):
-        app.config['TESTING'] = True
-        app.config['WTF_CSRF_ENABLED'] = False
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///'
+        self.app = create_app(TestConfig)
+        self.app_context = self.app.app_context()
+        self.app_context.push()
         db.create_all()
 
-        self.flask_client1 = app.test_client()
-        self.flask_client2 = app.test_client()
-        self.client1 = socketio.test_client(app, flask_test_client=self.flask_client1)
-        self.client2 = socketio.test_client(app, flask_test_client=self.flask_client2)
+        self.flask_client1 = self.app.test_client()
+        self.flask_client2 = self.app.test_client()
+        self.client1 = socketio.test_client(self.app, flask_test_client=self.flask_client1)
+        self.client2 = socketio.test_client(self.app, flask_test_client=self.flask_client2)
 
         if not Game.query.get("test-game"):
             self.g = Game(slug="test-game")
@@ -24,6 +30,7 @@ class GameCase(unittest.TestCase):
     def tearDown(self):
         db.session.remove()
         db.drop_all()
+        self.app_context.pop()
 
     @staticmethod
     def login(client, username):

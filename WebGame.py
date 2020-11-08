@@ -1,5 +1,7 @@
-from app import app, db, socketio
+from app import create_app, db, socketio
 from app.models import Game, Player
+
+app = create_app()
 
 
 @app.shell_context_processor
