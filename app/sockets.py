@@ -2,30 +2,32 @@ import os.path
 import random
 
 from flask import request
-from flask_login import current_user, login_required
+from flask_login import current_user
 from flask_socketio import emit, join_room, leave_room, close_room
 
 from . import socketio, db, app
-from .helper import check_game_state, dict_to_player, player_to_dict
+from .helper import check_game_state, dict_to_player, player_to_dict, authenticated_only
 from .models import Game
 
 
 @socketio.on('connect')
-@login_required
 def handle_connect():
-    current_user.sid = request.sid
-    slug = os.path.split(request.referrer)[1]
-    g = Game.query.get(slug)
-    join_room(g.slug)
-    current_user.current_game = g
-    emit("player joined", player_to_dict(current_user), room=g.slug)
-    db.session.commit()
-    app.logger.info(f"{g.slug} - Player {current_user.name} connected.")
-    return True
+    if current_user.is_authenticated:
+        current_user.sid = request.sid
+        slug = os.path.split(request.referrer)[1]
+        g = Game.query.get(slug)
+        join_room(g.slug)
+        current_user.current_game = g
+        emit("player joined", player_to_dict(current_user), room=g.slug)
+        db.session.commit()
+        app.logger.info(f"{g.slug} - Player {current_user.name} connected.")
+        return True
+    else:
+        return False
 
 
 @socketio.on('disconnect')
-@login_required
+@authenticated_only
 def handle_disconnect():
     g = current_user.current_game
     leave_room(g.slug)
@@ -41,7 +43,7 @@ def handle_disconnect():
 
 
 @socketio.on('start game')
-@login_required
+@authenticated_only
 @check_game_state("pre_game")
 def handle_start_game(g):
     if g.make_roles():
@@ -58,7 +60,7 @@ def handle_start_game(g):
 
 
 @socketio.on('nomination')
-@login_required
+@authenticated_only
 @check_game_state("nomination")
 def handle_nomination(g, nomination):
     nomination = dict_to_player(nomination)
@@ -76,7 +78,7 @@ def handle_nomination(g, nomination):
 
 
 @socketio.on('election')
-@login_required
+@authenticated_only
 @check_game_state("election")
 def handle_election(g, vote):
     if current_user.get_vote() is None:
@@ -104,7 +106,7 @@ def handle_election(g, vote):
 
 
 @socketio.on('policies president')
-@login_required
+@authenticated_only
 @check_game_state("policies_president")
 def handle_policies_president(g, policies):
     if g.current_president == current_user:
@@ -121,7 +123,7 @@ def handle_policies_president(g, policies):
 
 
 @socketio.on('policies chancellor')
-@login_required
+@authenticated_only
 @check_game_state("policies_chancellor")
 def handle_chancellor_policy_chosen(g, policy):
     if g.current_chancellor == current_user:

@@ -1,8 +1,10 @@
+import functools
 import json
 import os
 import random
 
 from flask_login import current_user
+from flask_socketio import disconnect
 
 from .models import Game
 from .models import Player
@@ -19,6 +21,16 @@ def make_slug():
         slug = make_slug()
 
     return slug
+
+
+def authenticated_only(f):
+    @functools.wraps(f)
+    def wrapped(*args, **kwargs):
+        if not current_user.is_authenticated:
+            disconnect()
+        else:
+            return f(*args, **kwargs)
+    return wrapped
 
 
 def check_game_state(state):
