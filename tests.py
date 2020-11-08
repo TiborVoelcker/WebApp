@@ -34,24 +34,28 @@ class GameCase(unittest.TestCase):
         return client.get('/logout', follow_redirects=True)
 
     def test_login(self):
-        p = Player.query.filter_by(name="Tibor").all()
+        p = Player.query.filter_by(name="Test-Player1").all()
         self.assertEqual(len(p), 0)
-        r = self.login(self.flask_client1, "Tibor")
-        p = Player.query.filter_by(name="Tibor").all()
+        r = self.login(self.flask_client1, "Test-Player1")
+        p = Player.query.filter_by(name="Test-Player1").all()
         self.assertEqual(len(p), 1)
         self.assertTrue(p[0].is_authenticated)
-        self.assertIn("Logged in as Tibor", r.data.decode())
-        r = self.login(self.flask_client1, "Tibor")
-        self.assertNotIn("Loggin in as Tibor", r.data.decode())
+        self.assertIn("Logged in as Test-Player1", r.data.decode())
+        r = self.login(self.flask_client1, "Test-Player1")
+        self.assertNotIn("Loggin in as Test-Player1", r.data.decode())
         r = self.logout(self.flask_client1)
         self.assertIn("logged out.", r.data.decode())
         r = self.logout(self.flask_client1)
         self.assertNotIn("logged out.", r.data.decode())
-        p = Player.query.filter_by(name="Tibor").all()
+        p = Player.query.filter_by(name="Test-Player1").all()
         self.assertEqual(len(p), 0)
 
     def test_game(self):
-        pass
+        r = self.client1.connect(query_string="?game=test-game")
+        self.assertFalse(self.client1.is_connected())
+        r = self.login(self.flask_client1, "Test-Player1")
+        self.client1.connect(query_string="?game=test-game")
+        self.assertTrue(self.client1.is_connected())
 
 
 if __name__ == '__main__':
