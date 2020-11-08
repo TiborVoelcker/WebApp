@@ -1,7 +1,8 @@
-const socket = io.connect();
+const socket = io({query: {game: game_slug}});
 
 document.addEventListener("DOMContentLoaded", function(event) {
     console.log("DOM fully loaded and parsed");
+    socket.connect();
     document.getElementById("start_game").addEventListener('click', function (e) {
         console.log("starting game");
         socket.emit("start game", (flag, message) => {

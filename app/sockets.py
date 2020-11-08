@@ -1,4 +1,3 @@
-import os.path
 import random
 
 from flask import request
@@ -14,7 +13,7 @@ from .models import Game
 def handle_connect():
     if current_user.is_authenticated:
         current_user.sid = request.sid
-        slug = os.path.split(request.referrer)[1]
+        slug = request.args["game"]
         g = Game.query.get(slug)
         join_room(g.slug)
         current_user.current_game = g
