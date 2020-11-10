@@ -1,16 +1,20 @@
 import logging
+import os
 import random
+from logging.handlers import TimedRotatingFileHandler
 
 from flask import Flask
+from flask.logging import default_handler
 from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
 
-from config import Config
+from config import config
 
 random.seed()
 
+# Flask extensions
 db = SQLAlchemy()
 migrate = Migrate()
 login = LoginManager()
@@ -18,16 +22,20 @@ login.login_view = 'auth.login'
 login.login_message = 'Please log in to access this page.'
 socketio = SocketIO()
 
+from . import models
 
-def create_app(config_class=Config):
+
+def create_app(config_name):
     app = Flask(__name__)
-    app.config.from_object(config_class)
+    app.config.from_object(config[config_name])
 
+    # Initialize flask extensions
     db.init_app(app)
     migrate.init_app(app, db)
     login.init_app(app)
     socketio.init_app(app)
 
+    # Register blueprints
     from app.errors import bp as errors_bp
     app.register_blueprint(errors_bp)
 
@@ -37,14 +45,20 @@ def create_app(config_class=Config):
     from app.main import bp as main_bp
     app.register_blueprint(main_bp)
 
-    if app.debug and not app.testing:  # ToDo: log to file, and check if removeHandler is necessary
-        # app.logger.removeHandler(default_handler)
-        ch = logging.StreamHandler()
-        formatter = logging.Formatter('%(message)s')
-        ch.setFormatter(formatter)
-        app.logger.addHandler(ch)
+    # Handle logging behaviour
+    if app.config["LOG_TO_STDOUT"]:
+        default_handler.setFormatter(logging.Formatter('%(message)s'))
+    else:
+        app.logger.removeHandler(default_handler)
+
+    if app.config["LOG_TO_FILE"]:
+        if not os.path.exists('logs'):
+            os.mkdir('logs')
+        file_handler = TimedRotatingFileHandler('logs/webgame.logs', when="midnight", backupCount=7)
+        # file_handler.setFormatter(logging.Formatter(""))
+        app.logger.addHandler(file_handler)
+
+    app.logger.setLevel(logging.INFO)
+    app.logger.info(f"WebGame startup with configuration [{config_name}]")
 
     return app
-
-
-from app import models
