@@ -17,15 +17,15 @@ class GameCase(unittest.TestCase):
         self.app_context.push()
         db.create_all()
 
-        self.flask_client1 = self.app.test_client()
-        self.flask_client2 = self.app.test_client()
-        self.client1 = socketio.test_client(self.app, flask_test_client=self.flask_client1)
-        self.client2 = socketio.test_client(self.app, flask_test_client=self.flask_client2)
-
         if not Game.query.get("test-game"):
             self.g = Game(slug="test-game")
             db.session.add(self.g)
             db.session.commit()
+
+        self.flask_client1 = self.app.test_client()
+        self.flask_client2 = self.app.test_client()
+        self.client1 = socketio.test_client(self.app, flask_test_client=self.flask_client1, query_string="?game=test-game")
+        self.client2 = socketio.test_client(self.app, flask_test_client=self.flask_client2, query_string="?game=test-game")
 
     def tearDown(self):
         db.session.remove()
@@ -58,7 +58,6 @@ class GameCase(unittest.TestCase):
         self.assertEqual(len(p), 0)
 
     def test_game(self):
-        r = self.client1.connect(query_string="?game=test-game")
         self.assertFalse(self.client1.is_connected())
         r = self.login(self.flask_client1, "Test-Player1")
         self.client1.connect(query_string="?game=test-game")

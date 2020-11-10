@@ -39,6 +39,8 @@ class TestingConfig(Config):
     TESTING = True
     LOG_TO_STDOUT = False
     LOG_TO_FILE = False
+    WTF_CSRF_ENABLED = False
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///'
 
 
 config = {
