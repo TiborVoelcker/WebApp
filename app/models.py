@@ -8,20 +8,28 @@ from app import db, login
 
 class Game(db.Model):
     slug = db.Column(db.String(64), unique=True, nullable=False, index=True, primary_key=True)
-    players = db.relationship('Player', backref='current_game', foreign_keys='[Player.game]')
-    settings = db.Column(db.Integer, db.ForeignKey('settings.id'))
-    current_president = db.Column(db.Integer, db.ForeignKey('player.id'))
-    current_chancellor = db.Column(db.Integer, db.ForeignKey('player.id'))
-    last_president = db.Column(db.Integer, db.ForeignKey('player.id'))
-    last_chancellor = db.Column(db.Integer, db.ForeignKey('player.id'))
     turn_no = db.Column(db.Integer, nullable=False, default=1)
     current_state = db.Column(db.String(16), nullable=False, default='pre_game')
     elected_policies = db.Column(db.PickleType(), nullable=False, default=list())
     __remaining_policies = db.Column(db.PickleType(), nullable=False,
                                      default=[1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
+    current_president_id = db.Column(db.Integer, db.ForeignKey('player.id'))
+    current_president = db.relationship("Player", foreign_keys=[current_president_id])
+
+    current_chancellor_id = db.Column(db.Integer, db.ForeignKey('player.id'))
+    current_chancellor = db.relationship("Player", foreign_keys=[current_chancellor_id])
+
+    last_president_id = db.Column(db.Integer, db.ForeignKey('player.id'))
+    last_president = db.relationship("Player", foreign_keys=[last_president_id])
+
+    last_chancellor_id = db.Column(db.Integer, db.ForeignKey('player.id'))
+    last_chancellor = db.relationship("Player", foreign_keys=[last_chancellor_id])
+
+    players = db.relationship('Player', backref='current_game', primaryjoin="Game.slug==Player.current_game_slug")
+
     def __repr__(self):
-        return f"Game {self.slug}"
+        return self.slug
 
     def everybody_voted(self):
         return all(player.get_vote() is not None for player in self.players)
@@ -74,12 +82,13 @@ class Player(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     sid = db.Column(db.Integer)
     name = db.Column(db.String(32), index=True)
-    game = db.Column(db.String(64), db.ForeignKey('game.slug'))
     __role = db.Column(db.String(16))
     __voted = db.Column(db.Boolean, nullable=True, default=None)
 
+    current_game_slug = db.Column(db.String(64), db.ForeignKey('game.slug'))
+
     def __repr__(self):
-        return f"User {self.name} (ID: {self.id})"
+        return {self.name}
 
     def get_vote(self):
         return self.__voted
@@ -100,10 +109,6 @@ class Player(db.Model, UserMixin):
 
     def get_role(self):
         return self.__role
-
-
-class Settings(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
 
 
 @login.user_loader
