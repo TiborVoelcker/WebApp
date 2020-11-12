@@ -1,0 +1,2 @@
+FLASK_APP=WebGame
+FLASK_ENV=development
