@@ -183,9 +183,3 @@ def handle_chancellor_policy_chosen(g, policy):
             return False, 'Your selection is invalid!'
     else:
         return False, 'Only the chancellor can elect polices right now!'
-
-
-@socketio.on_error()
-def handle_error(e):
-    emit('error', e)
-    raise e
