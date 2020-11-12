@@ -3,14 +3,14 @@ const socket = io({query: {game: game_slug}});
 document.addEventListener("DOMContentLoaded", function(event) {
     console.log("DOM fully loaded and parsed");
     socket.connect();
+
     document.getElementById("start_game").addEventListener('click', function (e) {
-        console.log("starting game");
         socket.emit("start game", (flag, message) => {
-            if (flag) {document.getElementById("pre_game").classList.toggle("active")}
-            else if (flag) {console.log(message);}
+            if (flag) {document.getElementById("pre_game").hidden = true}
+            else {console.log(message);}
         })
     });
-});
+})
 
 socket.on('player joined', function(data) {
     if (!document.getElementById(data.id)) {
@@ -22,19 +22,26 @@ socket.on('player joined', function(data) {
         li.appendChild(a);
         players.appendChild(li);
     }
-});
+})
 
 socket.on('player left', function(data) {
     if (document.getElementById(data.id)) {
         var player = document.getElementById(data.id);
         player.parentNode.removeChild(player);
     }
-});
+})
 
-socket.on('')
+socket.on('new president', function (data) {
+    var player = document.getElementById(data.id);
+    player.classList.add("president")
+})
+
+socket.on('nominate chancellor', function (data) {
+    document.getElementById("nomination").hidden = false;
+})
 
 socket.on("error", function(data) {
    console.log(data)
-});
+})
 
 //ToDo: implement basic featues
