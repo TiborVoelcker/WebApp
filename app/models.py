@@ -6,6 +6,43 @@ from flask_socketio import join_room
 from app import db, login
 
 
+class Player(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    sid = db.Column(db.Integer)
+    name = db.Column(db.String(32), index=True)
+    __role = db.Column(db.String(16))
+    __voted = db.Column(db.Boolean, nullable=True, default=None)
+
+    game_slug = db.Column(db.String(64), db.ForeignKey('game.slug'))
+    game = db.relationship("Game", back_populates="players", foreign_keys=game_slug)
+
+    def __repr__(self):
+        return self.name
+
+    def __str__(self):
+        return self.name
+
+    def get_vote(self):
+        return self.__voted
+
+    def set_vote(self, vote):
+        if type(vote) is bool or vote is None:
+            self.__voted = vote
+        else:
+            raise TypeError(f"Type of the vote needs to be None or Bool (was: {type(vote)})!")
+
+    def set_role(self, role):
+        if role == "fascist" or role == "liberal" or role == "hitler":
+            self.__role = role
+            if role == "fascist":
+                join_room(f"{self.current_game.slug} - fascist", sid=self.sid)
+        else:
+            raise TypeError(f"Role was invalid! ({self.role})")
+
+    def get_role(self):
+        return self.__role
+
+
 class Game(db.Model):
     slug = db.Column(db.String(64), unique=True, nullable=False, index=True, primary_key=True)
     turn_no = db.Column(db.Integer, nullable=False, default=1)
@@ -14,21 +51,32 @@ class Game(db.Model):
     __remaining_policies = db.Column(db.PickleType(), nullable=False,
                                      default=[1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
-    current_president_id = db.Column(db.Integer, db.ForeignKey('player.id'))
-    current_president = db.relationship("Player", foreign_keys=[current_president_id])
+    current_president_id = db.Column(db.Integer, db.ForeignKey('player.id', use_alter=True))
+    current_president = db.relationship("Player", foreign_keys=current_president_id,
+                                        primaryjoin="and_(Game.current_president_id == Player.id,"
+                                                    "Game.id == Player.game_id)")
 
-    current_chancellor_id = db.Column(db.Integer, db.ForeignKey('player.id'))
-    current_chancellor = db.relationship("Player", foreign_keys=[current_chancellor_id])
+    current_chancellor_id = db.Column(db.Integer, db.ForeignKey('player.id', use_alter=True))
+    current_chancellor = db.relationship("Player", foreign_keys=current_chancellor_id,
+                                         primaryjoin="and_(Game.current_chancellor_id == Player.id,"
+                                                     "Game.id == Player.game_id)")
 
-    last_president_id = db.Column(db.Integer, db.ForeignKey('player.id'))
-    last_president = db.relationship("Player", foreign_keys=[last_president_id])
+    last_president_id = db.Column(db.Integer, db.ForeignKey('player.id', use_alter=True))
+    last_president = db.relationship("Player", foreign_keys=last_president_id,
+                                     primaryjoin="and_(Game.last_president_id == Player.id,"
+                                                 "Game.id == Player.game_id)")
 
-    last_chancellor_id = db.Column(db.Integer, db.ForeignKey('player.id'))
-    last_chancellor = db.relationship("Player", foreign_keys=[last_chancellor_id])
+    last_chancellor_id = db.Column(db.Integer, db.ForeignKey('player.id', use_alter=True))
+    last_chancellor = db.relationship("Player", foreign_keys=last_chancellor_id,
+                                      primaryjoin="and_(Game.last_chancellor_id == Player.id,"
+                                                  "Game.id == Player.game_id)")
 
-    players = db.relationship('Player', backref='current_game', primaryjoin="Game.slug==Player.current_game_slug")
+    players = db.relationship('Player', back_populates="game", foreign_keys=Player.game_slug)
 
     def __repr__(self):
+        return self.slug
+
+    def __str__(self):
         return self.slug
 
     def everybody_voted(self):
@@ -76,39 +124,6 @@ class Game(db.Model):
             if player.get_role() == "hitler":
                 return player
         raise RuntimeError("No Hitler in current game found!")
-
-
-class Player(db.Model, UserMixin):
-    id = db.Column(db.Integer, primary_key=True)
-    sid = db.Column(db.Integer)
-    name = db.Column(db.String(32), index=True)
-    __role = db.Column(db.String(16))
-    __voted = db.Column(db.Boolean, nullable=True, default=None)
-
-    current_game_slug = db.Column(db.String(64), db.ForeignKey('game.slug'))
-
-    def __repr__(self):
-        return {self.name}
-
-    def get_vote(self):
-        return self.__voted
-
-    def set_vote(self, vote):
-        if type(vote) is bool or vote is None:
-            self.__voted = vote
-        else:
-            raise TypeError(f"Type of the vote needs to be None or Bool (was: {type(vote)})!")
-
-    def set_role(self, role):
-        if role == "fascist" or role == "liberal" or role == "hitler":
-            self.__role = role
-            if role == "fascist":
-                join_room(f"{self.current_game.slug} - fascist", sid=self.sid)
-        else:
-            raise TypeError(f"Role was invalid! ({self.role})")
-
-    def get_role(self):
-        return self.__role
 
 
 @login.user_loader
