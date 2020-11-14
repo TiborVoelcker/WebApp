@@ -8,4 +8,6 @@ suite = unittest.TestSuite()
 suite.addTests(loader.loadTestsFromTestCase(TestModels))
 
 runner = unittest.TextTestRunner(verbosity=2)
-result = runner.run(suite)
+
+def run():
+    return runner.run(suite)

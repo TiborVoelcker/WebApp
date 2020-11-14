@@ -1,8 +1,8 @@
 [run]
 concurrency = eventlet
-omit =
-    venv\*
 data_file = coverage/.coverage
+source =
+    app
 
 [report]
 show_missing = True
