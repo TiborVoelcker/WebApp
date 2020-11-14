@@ -1,0 +1,11 @@
+[run]
+concurrency = eventlet
+omit =
+    venv\*
+data_file = coverage/.coverage
+
+[report]
+show_missing = True
+
+[html]
+directory = coverage/report

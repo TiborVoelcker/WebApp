@@ -54,22 +54,22 @@ class Game(db.Model):
     current_president_id = db.Column(db.Integer, db.ForeignKey('player.id', use_alter=True))
     current_president = db.relationship("Player", foreign_keys=current_president_id,
                                         primaryjoin="and_(Game.current_president_id == Player.id,"
-                                                    "Game.id == Player.game_id)")
+                                                    "Game.slug == Player.game_slug)")
 
     current_chancellor_id = db.Column(db.Integer, db.ForeignKey('player.id', use_alter=True))
     current_chancellor = db.relationship("Player", foreign_keys=current_chancellor_id,
                                          primaryjoin="and_(Game.current_chancellor_id == Player.id,"
-                                                     "Game.id == Player.game_id)")
+                                                     "Game.slug == Player.game_slug)")
 
     last_president_id = db.Column(db.Integer, db.ForeignKey('player.id', use_alter=True))
     last_president = db.relationship("Player", foreign_keys=last_president_id,
                                      primaryjoin="and_(Game.last_president_id == Player.id,"
-                                                 "Game.id == Player.game_id)")
+                                                 "Game.slug == Player.game_slug)")
 
     last_chancellor_id = db.Column(db.Integer, db.ForeignKey('player.id', use_alter=True))
     last_chancellor = db.relationship("Player", foreign_keys=last_chancellor_id,
                                       primaryjoin="and_(Game.last_chancellor_id == Player.id,"
-                                                  "Game.id == Player.game_id)")
+                                                  "Game.slug == Player.game_slug)")
 
     players = db.relationship('Player', back_populates="game", foreign_keys=Player.game_slug)
 
