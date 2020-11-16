@@ -13,6 +13,6 @@ class BaseCase(unittest.TestCase):
         self.session = db.session
 
     def tearDown(self):
-        db.session.remove()
+        db.session.close_all()
         db.drop_all()
         self.app_context.pop()
