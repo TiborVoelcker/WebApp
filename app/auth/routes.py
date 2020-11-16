@@ -1,6 +1,3 @@
-import json
-import random
-
 from flask import redirect, url_for, flash, render_template, request
 from flask_login import current_user, login_user, logout_user
 from werkzeug.urls import url_parse
@@ -9,16 +6,6 @@ from app import db
 from app.auth import bp
 from app.auth.forms import GameForm, LoginForm
 from app.models import Game, Player
-
-
-def make_slug():
-    with bp.open_resource("static/short_words.json") as f:
-        words = json.load(f)
-        slug = "_".join(random.choices(words, k=3))
-    if Game.query.get(slug):
-        slug = make_slug()
-
-    return slug
 
 
 @bp.route('/', methods=['GET', 'POST'])
@@ -34,11 +21,10 @@ def index():
                 flash("Game ID is invalid.")
                 return redirect(url_for('.index'))
         if form.new_game.data:
-            slug = make_slug()
-            g = Game(slug=slug)
+            g = Game()
             db.session.add(g)
             db.session.commit()
-            return redirect(url_for('main.game', slug=slug))
+            return redirect(url_for('main.game', slug=g.slug))
 
     return render_template('index.html', title="Home", form=form)
 

@@ -1,15 +1,29 @@
+import json
+import os
 from random import choices
 
 from flask_login import UserMixin
 from flask_socketio import join_room
 
 from app import db, login
+from config import basedir
+
+
+def make_slug():
+    path = os.path.abspath(os.path.join(basedir, 'app/short_words.json'))
+    with open(path, "r") as f:
+        words = json.load(f)
+        slug = "_".join(choices(words, k=3))
+    if Game.query.get(slug):
+        slug = make_slug()
+
+    return slug
 
 
 class Player(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     sid = db.Column(db.Integer)
-    name = db.Column(db.String(32), index=True)
+    name = db.Column(db.String(32), db.CheckConstraint("name != ''"), index=True, nullable=False)
     __role = db.Column(db.String(16))
     __voted = db.Column(db.Boolean, nullable=True, default=None)
 
@@ -44,7 +58,7 @@ class Player(db.Model, UserMixin):
 
 
 class Game(db.Model):
-    slug = db.Column(db.String(64), unique=True, nullable=False, index=True, primary_key=True)
+    slug = db.Column(db.String(64), unique=True, nullable=False, index=True, primary_key=True, default=make_slug)
     turn_no = db.Column(db.Integer, nullable=False, default=1)
     current_state = db.Column(db.String(16), nullable=False, default='pre_game')
     elected_policies = db.Column(db.PickleType(), nullable=False, default=list())
