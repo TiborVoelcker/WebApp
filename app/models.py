@@ -61,7 +61,7 @@ class Game(db.Model):
     slug = db.Column(db.String(64), unique=True, nullable=False, index=True, primary_key=True, default=make_slug)
     turn_no = db.Column(db.Integer, nullable=False, default=1)
     current_state = db.Column(db.String(16), nullable=False, default='pre_game')
-    elected_policies = db.Column(db.PickleType(), nullable=False, default=list())
+    elected_policies = db.Column(db.PickleType(), nullable=False, default=tuple())
     __remaining_policies = db.Column(db.PickleType(), nullable=False,
                                      default=[1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 

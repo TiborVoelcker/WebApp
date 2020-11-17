@@ -96,7 +96,7 @@ def handle_election(g, vote):
         current_user.set_vote(vote)
         if g.everybody_voted():
             if g.evaluate_votes():
-                if g.elected_polices.count(1) >= 3 and g.current_chancellor.role == "hitler":
+                if g.elected_policies.count(1) >= 3 and g.current_chancellor.role == "hitler":
                     g.current_state = "post_game"
 
                     emit("game ended", "fascist", room=g.slug)
@@ -151,16 +151,16 @@ def handle_policies_president(g, policies):
 def handle_chancellor_policy_chosen(g, policy):
     if g.current_chancellor == current_user:
         if policy in [0, 1]:
-            g.elected_polices.append(policy)
+            g.elected_policies += (policy,)
             emit("chancellor chose policy", policy, room=g.slug)
             current_app.logger.info(f"{g} - New policy enacted: {('liberal', 'fascist')[policy]}")
 
-            if g.elected_polices.count(1) == 6:
+            if g.elected_policies.count(1) == 6:
                 g.current_state = "post_game"
 
                 emit("game ended", "fascist", room=g.slug)
                 current_app.logger.info(f"{g} - Game ended. Fascists won.")
-            elif g.elected_polices.count(0) == 5:
+            elif g.elected_policies.count(0) == 5:
                 g.current_state = "post_game"
 
                 emit("game ended", "liberals", room=g.slug)
