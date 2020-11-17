@@ -4,6 +4,7 @@ from random import choices
 
 from flask_login import UserMixin
 from flask_socketio import join_room
+from sqlalchemy.orm import validates
 
 from app import db, login
 from config import basedir
@@ -22,7 +23,7 @@ def make_slug():
 
 class Player(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
-    sid = db.Column(db.Integer)
+    sid = db.Column(db.Integer, unique=True)
     name = db.Column(db.String(32), db.CheckConstraint("name != ''"), index=True, nullable=False)
     __role = db.Column(db.String(16))
     __voted = db.Column(db.Boolean, nullable=True, default=None)
@@ -40,18 +41,14 @@ class Player(db.Model, UserMixin):
         return self.__voted
 
     def set_vote(self, vote):
-        if type(vote) is bool or vote is None:
-            self.__voted = vote
-        else:
-            raise TypeError(f"Type of the vote needs to be None or Bool (was: {type(vote)})!")
+        assert type(vote) is bool or vote is None
+        self.__voted = vote
 
     def set_role(self, role):
-        if role == "fascist" or role == "liberal" or role == "hitler":
-            self.__role = role
-            if role == "fascist":
-                join_room(f"{self.current_game.slug} - fascist", sid=self.sid)
-        else:
-            raise TypeError(f"Role was invalid! ({self.role})")
+        assert role == "fascist" or role == "liberal" or role == "hitler"
+        self.__role = role
+        if role == "fascist":
+            join_room(f"{self.current_game.slug} - fascist", sid=self.sid)
 
     def get_role(self):
         return self.__role
@@ -87,7 +84,15 @@ class Game(db.Model):
 
     players = db.relationship('Player', back_populates="game", foreign_keys=Player._game_slug)
 
-    players = db.relationship('Player', back_populates="game", foreign_keys=Player.game_slug)
+    @validates("current_state")
+    def validate_current_state(self, key, state):
+        assert state in ["pre_game", "nomination", "election", "policies_president", "policies_chancellor", "post_game"]
+        return state
+
+    @validates("elected_policies")
+    def validate_elected_policies(self, key, policies):
+        assert all(policy in [0, 1] for policy in policies) and type(policies) is tuple
+        return policies
 
     def __repr__(self):
         return self.slug
