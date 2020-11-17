@@ -27,8 +27,8 @@ class Player(db.Model, UserMixin):
     __role = db.Column(db.String(16))
     __voted = db.Column(db.Boolean, nullable=True, default=None)
 
-    game_slug = db.Column(db.String(64), db.ForeignKey('game.slug'))
-    game = db.relationship("Game", back_populates="players", foreign_keys=game_slug)
+    _game_slug = db.Column(db.String(64), db.ForeignKey('game.slug'))
+    game = db.relationship("Game", back_populates="players", foreign_keys=_game_slug)
 
     def __repr__(self):
         return self.name
@@ -65,25 +65,27 @@ class Game(db.Model):
     __remaining_policies = db.Column(db.PickleType(), nullable=False,
                                      default=[1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
-    current_president_id = db.Column(db.Integer, db.ForeignKey('player.id', use_alter=True))
-    current_president = db.relationship("Player", foreign_keys=current_president_id,
-                                        primaryjoin="and_(Game.current_president_id == Player.id,"
-                                                    "Game.slug == Player.game_slug)")
+    _current_president_id = db.Column(db.Integer, db.ForeignKey('player.id', use_alter=True))
+    current_president = db.relationship("Player", foreign_keys=_current_president_id,
+                                        primaryjoin="and_(Game._current_president_id == Player.id,"
+                                                    "Game.slug == Player._game_slug)")
 
-    current_chancellor_id = db.Column(db.Integer, db.ForeignKey('player.id', use_alter=True))
-    current_chancellor = db.relationship("Player", foreign_keys=current_chancellor_id,
-                                         primaryjoin="and_(Game.current_chancellor_id == Player.id,"
-                                                     "Game.slug == Player.game_slug)")
+    _current_chancellor_id = db.Column(db.Integer, db.ForeignKey('player.id', use_alter=True))
+    current_chancellor = db.relationship("Player", foreign_keys=_current_chancellor_id,
+                                         primaryjoin="and_(Game._current_chancellor_id == Player.id,"
+                                                     "Game.slug == Player._game_slug)")
 
-    last_president_id = db.Column(db.Integer, db.ForeignKey('player.id', use_alter=True))
-    last_president = db.relationship("Player", foreign_keys=last_president_id,
-                                     primaryjoin="and_(Game.last_president_id == Player.id,"
-                                                 "Game.slug == Player.game_slug)")
+    _last_president_id = db.Column(db.Integer, db.ForeignKey('player.id', use_alter=True))
+    last_president = db.relationship("Player", foreign_keys=_last_president_id,
+                                     primaryjoin="and_(Game._last_president_id == Player.id,"
+                                                 "Game.slug == Player._game_slug)")
 
-    last_chancellor_id = db.Column(db.Integer, db.ForeignKey('player.id', use_alter=True))
-    last_chancellor = db.relationship("Player", foreign_keys=last_chancellor_id,
-                                      primaryjoin="and_(Game.last_chancellor_id == Player.id,"
-                                                  "Game.slug == Player.game_slug)")
+    _last_chancellor_id = db.Column(db.Integer, db.ForeignKey('player.id', use_alter=True))
+    last_chancellor = db.relationship("Player", foreign_keys=_last_chancellor_id,
+                                      primaryjoin="and_(Game._last_chancellor_id == Player.id,"
+                                                  "Game.slug == Player._game_slug)")
+
+    players = db.relationship('Player', back_populates="game", foreign_keys=Player._game_slug)
 
     players = db.relationship('Player', back_populates="game", foreign_keys=Player.game_slug)
 
