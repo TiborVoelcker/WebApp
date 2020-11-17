@@ -3,7 +3,6 @@ import os
 from random import choices
 
 from flask_login import UserMixin
-from flask_socketio import join_room
 from sqlalchemy.orm import validates
 
 from app import db, login
@@ -47,8 +46,6 @@ class Player(db.Model, UserMixin):
     def set_role(self, role):
         assert role == "fascist" or role == "liberal" or role == "hitler"
         self.__role = role
-        if role == "fascist":
-            join_room(f"{self.current_game.slug} - fascist", sid=self.sid)
 
     def get_role(self):
         return self.__role
@@ -104,9 +101,10 @@ class Game(db.Model):
         return all(player.get_vote() is not None for player in self.players)
 
     def evaluate_votes(self):
+        assert self.everybody_voted()
         accepted = [player for player in self.players if player.get_vote()]
         rejected = [player for player in self.players if not player.get_vote()]
-        return accepted > rejected
+        return len(accepted) > len(rejected)
 
     def clear_votes(self):
         for player in self.players:
@@ -127,18 +125,13 @@ class Game(db.Model):
             self.__remaining_policies = [1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         return select
 
-    def make_roles(self):
-        if len(self.players) > 10 or len(self.players) < 5:
-            return False
-        else:
+    def get_roles(self):
+        if all(player.get_role() is None for player in self.players):
             num_liberals = len(self.players) // 2 + 1
             roles = ["liberal"] * num_liberals + ["fascist"] * (len(self.players) - 1 - num_liberals) + ["hitler"]
             for player in self.players:
                 player.set_role(roles.pop())
-            return True
-
-    def get_roles(self):
-        return {player.id: player.get_role() for player in self.players}
+        return {player: player.get_role() for player in self.players}
 
     def get_hitler(self):
         for player in self.players:
@@ -146,6 +139,9 @@ class Game(db.Model):
                 return player
         raise RuntimeError("No Hitler in current game found!")
 
+# ToDo: return tuples for players (id, name)
+# ToDo: make players a tuple
+# ToDo: commit to session in model methods
 
 @login.user_loader
 def load_user(id):

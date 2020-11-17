@@ -49,16 +49,20 @@ def handle_disconnect():
 @authenticated_only
 @check_game_state("pre_game")
 def handle_start_game(g):
-    if g.make_roles():
+    if len(g.players) > 10 or len(g.players) < 5:
+        roles = g.get_roles()
+        for player in roles:
+            if roles[player] == "fascist":
+                join_room(f"{g.slug} - fascist", sid=player.sid)
         g.current_state = "nomination"
 
         g.current_president = random.choice(g.players)
         emit("new president", player_to_dict(g.current_president), room=g.slug)
         emit("nominate chancellor", room=g.current_president.sid)
 
-        emit("roles", g.get_roles(), room=f"{g.slug} - fascist")
+        emit("roles", roles, room=f"{g.slug} - fascist")
         if len(g.players) < 7:
-            emit("roles", g.get_roles(), room=g.get_hitler().sid)
+            emit("roles", roles, room=g.get_hitler().sid)
 
         current_app.logger.info(f"{g} - Game started. {g.current_president} is the new president")
         db.session.commit()
