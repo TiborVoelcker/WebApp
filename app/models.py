@@ -79,7 +79,7 @@ class Game(db.Model):
                                       primaryjoin="and_(Game._last_chancellor_id == Player.id,"
                                                   "Game.slug == Player._game_slug)")
 
-    players = db.relationship('Player', back_populates="game", foreign_keys=Player._game_slug)
+    players = db.relationship('Player', back_populates="game", foreign_keys=Player._game_slug, collection_class=tuple)
 
     @validates("current_state")
     def validate_current_state(self, key, state):
@@ -131,7 +131,7 @@ class Game(db.Model):
             roles = ["liberal"] * num_liberals + ["fascist"] * (len(self.players) - 1 - num_liberals) + ["hitler"]
             for player in self.players:
                 player.set_role(roles.pop())
-        return {player: player.get_role() for player in self.players}
+        return {(player.id, player.name): player.get_role() for player in self.players}
 
     def get_hitler(self):
         for player in self.players:
@@ -139,9 +139,6 @@ class Game(db.Model):
                 return player
         raise RuntimeError("No Hitler in current game found!")
 
-# ToDo: return tuples for players (id, name)
-# ToDo: make players a tuple
-# ToDo: commit to session in model methods
 
 @login.user_loader
 def load_user(id):

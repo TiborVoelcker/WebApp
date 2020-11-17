@@ -95,7 +95,7 @@ class TestModels(BaseCase):
         g, p1, p2, p3 = Game(slug="test_game"), Player(name="test_player1", sid=1), \
                         Player(name="test_player2", sid=2), Player(name="test_player3", sid=3)
         self.session.add_all([g, p1, p2, p3])
-        g.players = [p1, p2, p3]
+        g.players = (p1, p2, p3)
         self.session.commit()
         p1.set_vote(True)
         p2.set_vote(False)
@@ -133,15 +133,15 @@ class TestModels(BaseCase):
                         Player(name="test_player3")
         self.session.add_all([g, p1, p2])
         self.session.commit()
-        g.players.append(p1)
+        g.players += (p1,)
         p2.game = g
         self.session.commit()
-        self.assertEqual(g.players, [p1, p2])
+        self.assertEqual(g.players, (p1, p2))
         self.assertEqual(p1.game, g)
         self.assertEqual(p2.game, g)
-        g.players.append(p3)
+        g.players += (p3,)
         self.session.commit()
-        self.assertEqual(g.players, [p1, p2, p3])
+        self.assertEqual(g.players, (p1, p2, p3))
         self.assertEqual(p3.game, g)
         self.assertEqual(Player.query.all(), [p1, p2, p3])
 

@@ -5,8 +5,11 @@ from flask_login import current_user
 from flask_socketio import emit, join_room, leave_room, close_room
 
 from app import socketio, db
-from app.helper import check_game_state, dict_to_player, player_to_dict, authenticated_only
+from app.helper import check_game_state, tuple_to_player, player_to_tuple, authenticated_only
 from app.models import Game
+
+
+# ToDo: change commit to flush? Automatically commit on right times (maybe from model methods?)
 
 
 @socketio.on('connect')
@@ -19,7 +22,7 @@ def handle_connect():
         current_user.current_game = g
 
         join_room(g.slug)
-        emit("player joined", player_to_dict(current_user), room=g.slug, skip_sid=current_user.sid)
+        emit("player joined", player_to_tuple(current_user), room=g.slug, skip_sid=current_user.sid)
 
         current_app.logger.info(f"{g} - {current_user} connected.")
         db.session.commit()
@@ -35,7 +38,7 @@ def handle_disconnect():
     current_user.current_game = None
     leave_room(g.slug)
     if g.players:
-        emit("player left", player_to_dict(current_user), room=g.slug)
+        emit("player left", player_to_tuple(current_user), room=g.slug)
     else:
         close_room(g.slug)
         db.session.delete(g)
@@ -51,13 +54,13 @@ def handle_disconnect():
 def handle_start_game(g):
     if len(g.players) > 10 or len(g.players) < 5:
         roles = g.get_roles()
-        for player in roles:
-            if roles[player] == "fascist":
+        for player in g.players:
+            if player.get_role() == "fascist":
                 join_room(f"{g.slug} - fascist", sid=player.sid)
         g.current_state = "nomination"
 
         g.current_president = random.choice(g.players)
-        emit("new president", player_to_dict(g.current_president), room=g.slug)
+        emit("new president", player_to_tuple(g.current_president), room=g.slug)
         emit("nominate chancellor", room=g.current_president.sid)
 
         emit("roles", roles, room=f"{g.slug} - fascist")
@@ -75,13 +78,13 @@ def handle_start_game(g):
 @authenticated_only
 @check_game_state("nomination")
 def handle_nomination(g, nomination):
-    nomination = dict_to_player(nomination)
+    nomination = tuple_to_player(nomination)
     if g.current_president == current_user:
         if nomination in g.players and not nomination == g.last_president and not nomination == g.last_chancellor:
             g.current_state = "election"
 
             g.current_chancellor = nomination
-            emit("new nomination", player_to_dict(nomination), room=g.slug)
+            emit("new nomination", player_to_tuple(nomination), room=g.slug)
 
             current_app.logger.info(f"{g} - {nomination} was nominated as chancellor.")
             db.session.commit()
@@ -108,7 +111,7 @@ def handle_election(g, vote):
                 else:
                     g.current_state = "policies_president"
 
-                    emit("new chancellor", player_to_dict(g.current_chancellor), room=g.slug)
+                    emit("new chancellor", player_to_tuple(g.current_chancellor), room=g.slug)
                     emit("choose policies", g.select_policies(), room=g.current_president.sid)
                     current_app.logger.info(f"{g} - {g.current_chancellor} was elected as chancellor.")
             else:
@@ -116,7 +119,7 @@ def handle_election(g, vote):
 
                 g.advance_president()
                 g.current_chancellor = None
-                emit("new president", player_to_dict(g.current_president), room=g.slug)
+                emit("new president", player_to_tuple(g.current_president), room=g.slug)
                 emit("nominate chancellor", room=g.current_president.sid)
                 current_app.logger.info(f"{g} - {g.current_chancellor} was rejected as chancellor. "
                                         f"{g.current_president} is the new president.")
@@ -177,7 +180,7 @@ def handle_chancellor_policy_chosen(g, policy):
                 g.advance_president()
                 g.current_chancellor = None
 
-                emit("new president", player_to_dict(g.current_president), room=g.slug)
+                emit("new president", player_to_tuple(g.current_president), room=g.slug)
                 emit("nominate chancellor", room=g.current_president.sid)
                 current_app.logger.info(f"{g.current_president} is the new president.")
 

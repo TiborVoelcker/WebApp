@@ -30,9 +30,9 @@ def check_game_state(state):
     return wrapper
 
 
-def dict_to_player(player_dict):
-    return Player.query.get(player_dict["id"])
+def tuple_to_player(player_tuple):
+    return Player.query.get(player_tuple[0])
 
 
-def player_to_dict(player):
-    return {"name": player.name, "id": player.id}
+def player_to_tuple(player):
+    return (player.id, player.name)
