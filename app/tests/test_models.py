@@ -91,8 +91,42 @@ class TestModels(BaseCase):
         with self.assertRaises(AssertionError):
             p.set_role(1)
 
-    def test_model_methods(self):
-        pass
+    def test_game_methods(self):
+        g, p1, p2, p3 = Game(slug="test_game"), Player(name="test_player1", sid=1), \
+                        Player(name="test_player2", sid=2), Player(name="test_player3", sid=3)
+        self.session.add_all([g, p1, p2, p3])
+        g.players = [p1, p2, p3]
+        self.session.commit()
+        p1.set_vote(True)
+        p2.set_vote(False)
+        self.session.commit()
+        self.assertFalse(g.everybody_voted())
+        with self.assertRaises(AssertionError):
+            g.evaluate_votes()
+        p3.set_vote(False)
+        self.session.commit()
+        self.assertTrue(g.everybody_voted())
+        self.assertFalse(g.evaluate_votes())
+        p3.set_vote(True)
+        self.session.commit()
+        self.assertTrue(g.evaluate_votes())
+        g.clear_votes()
+        self.session.commit()
+        self.assertTrue(all([player.get_vote() is None for player in g.players]))
+
+        g.current_president = p1
+        g.advance_president()
+        self.session.commit()
+        self.assertEqual(g.current_president, p2)
+        g.current_president = p3
+        g.advance_president()
+        self.session.commit()
+        self.assertEqual(g.current_president, p1)
+
+        roles = g.get_roles()
+        self.session.commit()
+        self.assertTrue(all([player.get_role() in ["fascist", "liberal", "hitler"] for player in g.players]))
+        self.assertEqual(g.get_roles(), roles)
 
     def test_game_allocation(self):
         g, p1, p2, p3 = Game(slug="test_game"), Player(name="test_player1"), Player(name="test_player2"), \
