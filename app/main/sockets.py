@@ -3,8 +3,7 @@ import random
 
 from flask import request, current_app
 from flask_login import current_user
-from flask_socketio import disconnect
-from flask_socketio import emit, join_room, leave_room, close_room
+from flask_socketio import emit, join_room, leave_room, disconnect
 
 from app import socketio, db
 from app.models import Game
@@ -26,7 +25,7 @@ def authenticated_only(f):
 def check_game_state(state):
     def wrapper(func):
         def inner(*args):
-            g = current_user.current_game
+            g = current_user.game
             if g.current_state == state:
                 return func(g, *args)
             else:
@@ -46,38 +45,43 @@ def player_to_tuple(player):
 
 
 @socketio.on('connect')
-def handle_connect():
-    if current_user.is_authenticated:
-        current_user.sid = request.sid
-        slug = request.args["game"]
+@authenticated_only
+def handle_connect(s=None):
+    current_user.sid = request.sid
 
+    if s or request.args["game"]:
+        return handle_join_game(s)
+    else:
+        return True
+
+
+@socketio.on('join game')
+@authenticated_only
+def handle_join_game(s=None):
+    if not current_user.game:
+        slug = s or request.args["game"]
         g = Game.query.get(slug)
-        current_user.current_game = g
 
+        current_user.game = g
         join_room(g.slug)
         emit("player joined", player_to_tuple(current_user), room=g.slug, skip_sid=current_user.sid)
 
-        current_app.logger.info(f"{g} - {current_user} connected.")
+        current_app.logger.info(f"{g} - {current_user} joined.")
         db.session.commit()
         return True
     else:
-        return False
+        return False, f"You are already in a game! ({g})"
 
 
 @socketio.on('disconnect')
 @authenticated_only
 def handle_disconnect():
-    g = current_user.current_game
-    current_user.current_game = None
+    g = current_user.game
+
     leave_room(g.slug)
-    if g.players:
-        emit("player left", player_to_tuple(current_user), room=g.slug)
-    else:
-        close_room(g.slug)
-        db.session.delete(g)
+    emit("player left", player_to_tuple(current_user), room=g.slug)
 
     current_app.logger.info(f"{g} - {current_user} disconnected.")
-    db.session.commit()
     return True
 
 
