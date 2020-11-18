@@ -13,5 +13,8 @@
         </p>
         <p>{{ form.submit() }}</p>
         <p>{{ form.new_game() }}</p>
+        {% if rejoin %}
+        <p>{{ form.rejoin() }}</p>
+        {% endif %}
     </form>
 {% endblock %}

@@ -27,7 +27,7 @@ class Config(object):
         'hour': '8-16/4, 16-22/2'
     }]
     SCHEDULER_ENABLED = True
-    INACTIVE_TIME_DELAY = timedelta(minutes=1)
+    INACTIVE_TIME_DELAY = timedelta(hours=2)
 
 
 class DevelopmentConfig(Config):

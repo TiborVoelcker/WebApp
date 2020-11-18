@@ -13,3 +13,4 @@ class GameForm(FlaskForm):
     game_slug = StringField('Game ID', validators=[DataRequired()])
     submit = SubmitField('Join')
     new_game = SubmitField('New Game')
+    rejoin = SubmitField('Rejoin')

@@ -16,17 +16,25 @@ def index():
         if form.submit.data and form.validate():
             g = Game.query.get(form.game_slug.data)
             if g:
+                current_user.game = None
+                db.session.commit()
                 return redirect(url_for('main.game', slug=form.game_slug.data))
             else:
                 flash("Game ID is invalid.")
                 return redirect(url_for('.index'))
         if form.new_game.data:
+            current_user.game = None
             g = Game()
             db.session.add(g)
             db.session.commit()
             return redirect(url_for('main.game', slug=g.slug))
+        if form.rejoin.data:
+            return redirect(url_for('main.game', slug=current_user.game.slug))
 
-    return render_template('index.html', title="Home", form=form)
+    rejoin = False
+    if not current_user.is_anonymous and current_user.game:
+        rejoin = True
+    return render_template('index.html', title="Home", form=form, rejoin=rejoin)
 
 
 @bp.route('/login', methods=['GET', 'POST'])
