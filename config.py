@@ -1,10 +1,9 @@
 import os
+from datetime import timedelta
 
 from dotenv import load_dotenv
 
 basedir = os.path.abspath(os.path.dirname(__file__))
-
-# TODO: think of a good configuration style
 
 
 class Config(object):
@@ -20,6 +19,15 @@ class Config(object):
     TESTING = False
     LOG_TO_STDOUT = False
     LOG_TO_FILE = True
+    SCHEDULER_API_ENABLED = False
+    JOBS = [{
+        'id': 'housekeeping',
+        'func': 'app.tasks:housekeeping',
+        'trigger': 'cron',
+        'hour': '8-16/4, 16-22/2'
+    }]
+    SCHEDULER_ENABLED = True
+    INACTIVE_TIME_DELAY = timedelta(minutes=1)
 
 
 class DevelopmentConfig(Config):
@@ -27,6 +35,7 @@ class DevelopmentConfig(Config):
     DEBUG = True
     LOG_TO_STDOUT = True
     LOG_TO_FILE = False
+    SCHEDULER_ENABLED = True
 
 
 class ProductionConfig(Config):
@@ -41,6 +50,7 @@ class TestingConfig(Config):
     LOG_TO_FILE = False
     WTF_CSRF_ENABLED = False
     SQLALCHEMY_DATABASE_URI = 'sqlite:///'
+    SCHEDULER_ENABLED = False
 
 
 config = {

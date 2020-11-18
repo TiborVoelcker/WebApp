@@ -5,6 +5,7 @@ from logging.handlers import TimedRotatingFileHandler
 
 from flask import Flask
 from flask.logging import default_handler
+from flask_apscheduler import APScheduler
 from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_socketio import SocketIO
@@ -21,6 +22,7 @@ login = LoginManager()
 login.login_view = 'auth.login'
 login.login_message = 'Please log in to access this page.'
 socketio = SocketIO()
+scheduler = APScheduler()
 
 from . import models
 
@@ -34,6 +36,7 @@ def create_app(config_name):
     migrate.init_app(app, db)
     login.init_app(app)
     socketio.init_app(app)
+    scheduler.init_app(app)
 
     # Register blueprints
     from app.errors import bp as errors_bp
@@ -60,5 +63,7 @@ def create_app(config_name):
 
     app.logger.setLevel(logging.INFO)
     app.logger.info(f"WebGame startup with configuration [{config_name}]")
+
+    scheduler.start()
 
     return app

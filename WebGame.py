@@ -3,6 +3,7 @@ from app.models import Game, Player
 
 app = create_app('development')
 
+# ToDo: turn to setup.cfg or manage.py?
 
 @app.shell_context_processor
 def make_shell_context():
@@ -10,4 +11,4 @@ def make_shell_context():
 
 
 if __name__ == '__main__':
-    socketio.run(app, log_output=False)
+    socketio.run(app, log_output=False, use_reloader=False)

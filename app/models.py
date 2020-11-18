@@ -1,5 +1,6 @@
 import json
 import os
+from datetime import datetime
 from random import choices, shuffle
 
 from flask_login import UserMixin
@@ -60,6 +61,8 @@ class Game(db.Model):
     elected_policies = db.Column(db.PickleType(), nullable=False, default=tuple())
     __remaining_policies = db.Column(db.PickleType(), nullable=False,
                                      default=[1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+
+    last_active = db.Column(db.DateTime, default=datetime.utcnow)
 
     _current_president_id = db.Column(db.Integer, db.ForeignKey('player.id', use_alter=True))
     current_president = db.relationship("Player", foreign_keys=_current_president_id,
@@ -161,6 +164,11 @@ def receive_before_flush(session, flush, instances):
     for g in games:
         for p in g.players:
             p.position = None
+
+
+@event.listens_for(Game, 'before_update')
+def receive_after_update(mapper, connection, target):
+    target.last_active = datetime.utcnow()
 
 
 @login.user_loader
