@@ -1,15 +1,15 @@
 """empty message
 
-Revision ID: add8b619d253
+Revision ID: 7e1d3d1c5600
 Revises: 
-Create Date: 2020-11-14 13:47:48.283863
+Create Date: 2020-11-17 21:31:51.099808
 
 """
 import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = 'add8b619d253'
+revision = '7e1d3d1c5600'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -23,26 +23,28 @@ def upgrade():
     sa.Column('current_state', sa.String(length=16), nullable=False),
     sa.Column('elected_policies', sa.PickleType(), nullable=False),
     sa.Column('_Game__remaining_policies', sa.PickleType(), nullable=False),
-    sa.Column('current_president_id', sa.Integer(), nullable=True),
-    sa.Column('current_chancellor_id', sa.Integer(), nullable=True),
-    sa.Column('last_president_id', sa.Integer(), nullable=True),
-    sa.Column('last_chancellor_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['current_chancellor_id'], ['player.id'], use_alter=True),
-    sa.ForeignKeyConstraint(['current_president_id'], ['player.id'], use_alter=True),
-    sa.ForeignKeyConstraint(['last_chancellor_id'], ['player.id'], use_alter=True),
-    sa.ForeignKeyConstraint(['last_president_id'], ['player.id'], use_alter=True),
+    sa.Column('_current_president_id', sa.Integer(), nullable=True),
+    sa.Column('_current_chancellor_id', sa.Integer(), nullable=True),
+    sa.Column('_last_president_id', sa.Integer(), nullable=True),
+    sa.Column('_last_chancellor_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['_current_chancellor_id'], ['player.id'], use_alter=True),
+    sa.ForeignKeyConstraint(['_current_president_id'], ['player.id'], use_alter=True),
+    sa.ForeignKeyConstraint(['_last_chancellor_id'], ['player.id'], use_alter=True),
+    sa.ForeignKeyConstraint(['_last_president_id'], ['player.id'], use_alter=True),
     sa.PrimaryKeyConstraint('slug')
     )
     op.create_index(op.f('ix_game_slug'), 'game', ['slug'], unique=True)
     op.create_table('player',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('sid', sa.Integer(), nullable=True),
-    sa.Column('name', sa.String(length=32), nullable=True),
+    sa.Column('name', sa.String(length=32), nullable=False),
+    sa.Column('position', sa.Integer(), nullable=True),
     sa.Column('_Player__role', sa.String(length=16), nullable=True),
     sa.Column('_Player__voted', sa.Boolean(), nullable=True),
-    sa.Column('game_slug', sa.String(length=64), nullable=True),
-    sa.ForeignKeyConstraint(['game_slug'], ['game.slug'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.Column('_game_slug', sa.String(length=64), nullable=True),
+    sa.ForeignKeyConstraint(['_game_slug'], ['game.slug'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('sid')
     )
     op.create_index(op.f('ix_player_name'), 'player', ['name'], unique=False)
     # ### end Alembic commands ###

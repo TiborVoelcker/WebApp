@@ -1,8 +1,9 @@
 import json
 import os
-from random import choices
+from random import choices, shuffle
 
 from flask_login import UserMixin
+from sqlalchemy import event
 from sqlalchemy.orm import validates
 
 from app import db, login
@@ -24,6 +25,7 @@ class Player(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     sid = db.Column(db.Integer, unique=True)
     name = db.Column(db.String(32), db.CheckConstraint("name != ''"), index=True, nullable=False)
+    position = db.Column(db.Integer)
     __role = db.Column(db.String(16))
     __voted = db.Column(db.Boolean, nullable=True, default=None)
 
@@ -79,7 +81,7 @@ class Game(db.Model):
                                       primaryjoin="and_(Game._last_chancellor_id == Player.id,"
                                                   "Game.slug == Player._game_slug)")
 
-    players = db.relationship('Player', back_populates="game", foreign_keys=Player._game_slug, collection_class=tuple)
+    players = db.relationship('Player', back_populates="game", foreign_keys=Player._game_slug, order_by=Player.position)
 
     @validates("current_state")
     def validate_current_state(self, key, state):
@@ -91,11 +93,24 @@ class Game(db.Model):
         assert all(policy in [0, 1] for policy in policies) and type(policies) is tuple
         return policies
 
+    @validates('players', include_removes=True)
+    def validate_game(self, key, player, is_remove):
+        if is_remove:
+            player.position = None
+        return player
+
     def __repr__(self):
         return self.slug
 
     def __str__(self):
         return self.slug
+
+    def freeze_player_positions(self, scramble=False):
+        r = list(range(len(self.players)))
+        if scramble:
+            shuffle(r)
+        for i, player in enumerate(self.players):
+            player.position = r[i]
 
     def everybody_voted(self):
         return all(player.get_vote() is not None for player in self.players)
@@ -138,6 +153,14 @@ class Game(db.Model):
             if player.get_role() == "hitler":
                 return player
         raise RuntimeError("No Hitler in current game found!")
+
+
+@event.listens_for(db.session, 'before_flush')
+def receive_before_flush(session, flush, instances):
+    games = filter(lambda g: isinstance(g, Game) and g.players, session.deleted)
+    for g in games:
+        for p in g.players:
+            p.position = None
 
 
 @login.user_loader

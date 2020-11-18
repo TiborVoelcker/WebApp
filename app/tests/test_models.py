@@ -26,6 +26,23 @@ class TestModels(BaseCase):
         self.assertRaises(IntegrityError, self.session.commit)
         self.session.rollback()
 
+    def test_delete_cascades(self):
+        g, p1, p2 = Game(slug="heyoo"), Player(name="test_player1"), Player(name="test_player2")
+        self.session.add_all([g, p1, p2])
+        g.players = [p1, p2]
+        self.session.commit()
+        g.current_chancellor = p1
+        self.session.commit()
+        g.freeze_player_positions()
+        self.session.delete(p1)
+        self.session.commit()
+        self.assertFalse(g.current_chancellor)
+        self.assertNotIn(p1, g.players)
+        self.session.delete(g)
+        self.session.commit()
+        self.assertFalse(p2.game)
+        self.assertFalse(p2.position)
+
     def test_unique_constraints(self):
         g1, g2, p1, p2 = Game(), Game(), Player(name="test_player1", sid=12), Player(name="test_player2")
         self.session.add_all([g1, g2, p1, p2])
@@ -49,6 +66,7 @@ class TestModels(BaseCase):
             self.assertEqual(p.name, "test_player2")
             self.assertEqual(p.id, 29)
             self.assertEqual(p.sid, 135)
+            self.assertEqual(p.position, 5)
         g1, p1 = Game(), Player(name="test_player1")
         self.session.add_all([g1, p1])
         self.session.commit()
@@ -59,6 +77,7 @@ class TestModels(BaseCase):
         g1.current_state = "nomination"
         g1.elected_policies += (1, 0)
         p1.name = "test_player2"
+        p1.position = 5
         p1.id = 29
         p1.sid = 135
         self.session.commit()
@@ -69,13 +88,14 @@ class TestModels(BaseCase):
         self.assertFalse(Game.query.first())
         self.assertFalse(Player.query.first())
         g2 = Game(slug="test_game", turn_no=4, current_state="nomination", elected_policies=(1, 0))
-        p2 = Player(name="test_player2", id=29, sid=135)
+        p2 = Player(name="test_player2", id=29, sid=135, position=5)
         self.session.add_all([g2, p2])
         self.session.commit()
         assert_fields(g2, p2)
 
     def test_validations(self):
-        g, p = Game(slug="test_game", current_state="nomination"), Player(name="test_player1")
+        g, p = Game(slug="test_game", current_state="nomination"), Player(name="test_player1", position=1)
+        p.game = g
         self.session.add_all([g, p])
         self.session.commit()
         with self.assertRaises(AssertionError):
@@ -90,12 +110,15 @@ class TestModels(BaseCase):
             p.set_role("error")
         with self.assertRaises(AssertionError):
             p.set_role(1)
+        g.players.clear()
+        self.session.commit()
+        self.assertEqual(p.position, None)
 
     def test_game_methods(self):
         g, p1, p2, p3 = Game(slug="test_game"), Player(name="test_player1", sid=1), \
                         Player(name="test_player2", sid=2), Player(name="test_player3", sid=3)
         self.session.add_all([g, p1, p2, p3])
-        g.players = (p1, p2, p3)
+        g.players = [p1, p2, p3]
         self.session.commit()
         p1.set_vote(True)
         p2.set_vote(False)
@@ -112,7 +135,7 @@ class TestModels(BaseCase):
         self.assertTrue(g.evaluate_votes())
         g.clear_votes()
         self.session.commit()
-        self.assertTrue(all([player.get_vote() is None for player in g.players]))
+        self.assertTrue(all(player.get_vote() is None for player in g.players))
 
         g.current_president = p1
         g.advance_president()
@@ -125,23 +148,31 @@ class TestModels(BaseCase):
 
         roles = g.get_roles()
         self.session.commit()
-        self.assertTrue(all([player.get_role() in ["fascist", "liberal", "hitler"] for player in g.players]))
+        self.assertTrue(all(player.get_role() in ["fascist", "liberal", "hitler"] for player in g.players))
         self.assertEqual(g.get_roles(), roles)
+
+        g.freeze_player_positions()
+        self.assertTrue(all(player.position == g.players.index(player) for player in g.players))
+        g.freeze_player_positions(scramble=True)
+        self.assertTrue(all(type(player.position) is int for player in g.players))
+
+    def test_player_positions(self):
+        pass
 
     def test_game_allocation(self):
         g, p1, p2, p3 = Game(slug="test_game"), Player(name="test_player1"), Player(name="test_player2"), \
                         Player(name="test_player3")
         self.session.add_all([g, p1, p2])
         self.session.commit()
-        g.players += (p1,)
+        g.players.append(p1)
         p2.game = g
         self.session.commit()
-        self.assertEqual(g.players, (p1, p2))
+        self.assertEqual(g.players, [p1, p2])
         self.assertEqual(p1.game, g)
         self.assertEqual(p2.game, g)
-        g.players += (p3,)
+        g.players.append(p3)
         self.session.commit()
-        self.assertEqual(g.players, (p1, p2, p3))
+        self.assertEqual(g.players, [p1, p2, p3])
         self.assertEqual(p3.game, g)
         self.assertEqual(Player.query.all(), [p1, p2, p3])
 

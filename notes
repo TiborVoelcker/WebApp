@@ -6,3 +6,8 @@ missing features:
     election tracker
     when the game ends
     change game settings
+
+
+leaving behavior:
+    with start_game -> players are fixed, only members can rejoin
+    delete the game when game is finished, or presses ("start new game") or ("find new game")
