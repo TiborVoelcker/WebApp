@@ -73,7 +73,10 @@ def handle_join_game(s=None):
         else:
             return False, "Game already started!"
     else:
-        return False, f"You are already in a game! ({g})"
+        if request.referrer.split()[-1] == current_user.game.slug: # rejoined this game game
+            return True
+        else:
+            return False, f"You are already in a game! ({current_user.game})" # already in other game
 
 
 @socketio.on('disconnect')
