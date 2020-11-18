@@ -58,17 +58,20 @@ def handle_connect(s=None):
 @socketio.on('join game')
 @authenticated_only
 def handle_join_game(s=None):
-    if not current_user.game:
+    if not current_user.game: # joining new
         slug = s or request.args["game"]
         g = Game.query.get(slug)
 
-        current_user.game = g
-        join_room(g.slug)
-        emit("player joined", player_to_tuple(current_user), room=g.slug, skip_sid=current_user.sid)
+        if g.current_state == "pre_game":
+            current_user.game = g
+            join_room(g.slug)
+            emit("player joined", player_to_tuple(current_user), room=g.slug, skip_sid=current_user.sid)
 
-        current_app.logger.info(f"{g} - {current_user} joined.")
-        db.session.commit()
-        return True
+            current_app.logger.info(f"{g} - {current_user} joined.")
+            db.session.commit()
+            return True
+        else:
+            return False, "Game already started!"
     else:
         return False, f"You are already in a game! ({g})"
 
