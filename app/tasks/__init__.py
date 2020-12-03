@@ -5,6 +5,7 @@ from app import scheduler
 from app.models import Game
 
 
+@scheduler.task('cron', hour='8-16/4, 16-22/2')
 def housekeeping():
     with scheduler.app.app_context():
         now = datetime.utcnow()

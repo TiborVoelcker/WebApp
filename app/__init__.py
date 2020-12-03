@@ -64,6 +64,11 @@ def create_app(config_name):
     app.logger.setLevel(logging.INFO)
     app.logger.info(f"WebGame startup with configuration [{config_name}]")
 
-    scheduler.start()
+    # Handle tasks
+    if app.config["SCHEDULER_ENABLED"]:
+        from app import tasks
+
+        scheduler.start()
+        app.logger.info(f"Started tasks: {[job.name for job in scheduler.get_jobs()]}")
 
     return app
