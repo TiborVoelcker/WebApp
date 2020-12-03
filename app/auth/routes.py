@@ -17,7 +17,6 @@ def index():
             g = Game.query.get(form.game_slug.data)
             if g:
                 current_user.game = None
-                db.session.commit()
                 return redirect(url_for('main.game', slug=form.game_slug.data))
             else:
                 flash("Game ID is invalid.")
@@ -26,7 +25,6 @@ def index():
             current_user.game = None
             g = Game()
             db.session.add(g)
-            db.session.commit()
             return redirect(url_for('main.game', slug=g.slug))
         if form.rejoin.data:
             return redirect(url_for('main.game', slug=current_user.game.slug))
@@ -45,7 +43,6 @@ def login():
     if form.validate_on_submit():
         user = Player(name=form.username.data)
         db.session.add(user)
-        db.session.commit()
         login_user(user, remember=form.remember_me.data)
         flash(f'Hello {user.name}!')
 
@@ -60,7 +57,12 @@ def login():
 def logout():
     if current_user.is_authenticated:
         db.session.delete(current_user)
-        db.session.commit()
         logout_user()
         flash(f'Successfully logged out.')
     return redirect(url_for('.index'))
+
+
+@bp.after_app_request
+def commit_session(response):
+    db.session.commit()
+    return response

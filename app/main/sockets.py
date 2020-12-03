@@ -10,7 +10,13 @@ from app.models import Game
 from app.models import Player
 
 
-# ToDo: change commit to flush? Automatically commit on right times (maybe from model methods?)
+def commit_session(f):
+    @functools.wraps(f)
+    def wrapped(*args, **kwargs):
+        res = f(*args, **kwargs)
+        db.session.commit()
+        return res
+
 
 def authenticated_only(f):
     @functools.wraps(f)
@@ -23,15 +29,16 @@ def authenticated_only(f):
 
 
 def check_game_state(state):
-    def wrapper(func):
-        def inner(*args):
+    def wrapper(f):
+        @functools.wraps(f)
+        def wrapped(*args, **kwargs):
             g = current_user.game
             if g.current_state == state:
-                return func(g, *args)
+                return f(g, *args, **kwargs)
             else:
                 return False, 'You cannot do that right now!'
 
-        return inner
+        return wrapped
 
     return wrapper
 
@@ -46,6 +53,7 @@ def player_to_tuple(player):
 
 @socketio.on('connect')
 @authenticated_only
+@commit_session
 def handle_connect(s=None):
     current_user.sid = request.sid
 
@@ -57,6 +65,7 @@ def handle_connect(s=None):
 
 @socketio.on('join game')
 @authenticated_only
+@commit_session
 def handle_join_game(s=None):
     if not current_user.game: # joining new
         slug = s or request.args["game"]
@@ -68,7 +77,6 @@ def handle_join_game(s=None):
             emit("player joined", player_to_tuple(current_user), room=g.slug, skip_sid=current_user.sid)
 
             current_app.logger.info(f"{g} - {current_user} joined.")
-            db.session.commit()
             return True
         else:
             return False, "Game already started!"
@@ -81,6 +89,7 @@ def handle_join_game(s=None):
 
 @socketio.on('disconnect')
 @authenticated_only
+@commit_session
 def handle_disconnect():
     g = current_user.game
 
@@ -94,6 +103,7 @@ def handle_disconnect():
 @socketio.on('start game')
 @authenticated_only
 @check_game_state("pre_game")
+@commit_session
 def handle_start_game(g):
     if len(g.players) > 10 or len(g.players) < 5:
         roles = g.get_roles()
@@ -111,7 +121,6 @@ def handle_start_game(g):
             emit("roles", roles, room=g.get_hitler().sid)
 
         current_app.logger.info(f"{g} - Game started. {g.current_president} is the new president")
-        db.session.commit()
         return True
     else:
         return False, f'The number of players need to be between 5 and 10 players! (currently {len(g.players)})'
@@ -120,6 +129,7 @@ def handle_start_game(g):
 @socketio.on('nomination')
 @authenticated_only
 @check_game_state("nomination")
+@commit_session
 def handle_nomination(g, nomination):
     nomination = tuple_to_player(nomination)
     if g.current_president == current_user:
@@ -130,7 +140,6 @@ def handle_nomination(g, nomination):
             emit("new nomination", player_to_tuple(nomination), room=g.slug)
 
             current_app.logger.info(f"{g} - {nomination} was nominated as chancellor.")
-            db.session.commit()
             return True
         else:
             return False, 'Invalid Nomination! (Player is not in the game or was last elected)'
@@ -141,6 +150,7 @@ def handle_nomination(g, nomination):
 @socketio.on('election')
 @authenticated_only
 @check_game_state("election")
+@commit_session
 def handle_election(g, vote):
     if current_user.get_vote() is None:
         current_user.set_vote(vote)
@@ -168,7 +178,6 @@ def handle_election(g, vote):
                                         f"{g.current_president} is the new president.")
 
             g.clear_votes()
-        db.session.commit()
         return True
     else:
         return False, 'You already voted!'
@@ -177,6 +186,7 @@ def handle_election(g, vote):
 @socketio.on('policies president')
 @authenticated_only
 @check_game_state("policies_president")
+@commit_session
 def handle_policies_president(g, policies):
     if g.current_president == current_user:
         if all(policy in [0, 1] for policy in policies) and len(policies) == 2:
@@ -187,7 +197,6 @@ def handle_policies_president(g, policies):
 
             current_app.logger.info(f"{g} - The president chose policies. Remaining policies:"
                                     f"[{', '.join([('liberal', 'fascist')[policy] for policy in policies])}]")
-            db.session.commit()
             return True
         else:
             return False, 'Your selection is invalid!'
@@ -198,6 +207,7 @@ def handle_policies_president(g, policies):
 @socketio.on('policies chancellor')
 @authenticated_only
 @check_game_state("policies_chancellor")
+@commit_session
 def handle_chancellor_policy_chosen(g, policy):
     if g.current_chancellor == current_user:
         if policy in [0, 1]:
@@ -227,7 +237,6 @@ def handle_chancellor_policy_chosen(g, policy):
                 emit("nominate chancellor", room=g.current_president.sid)
                 current_app.logger.info(f"{g.current_president} is the new president.")
 
-            db.session.commit()
             return True
         else:
             return False, 'Your selection is invalid!'

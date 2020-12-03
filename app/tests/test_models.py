@@ -27,12 +27,11 @@ class TestModels(BaseCase):
         self.session.rollback()
 
     def test_delete_cascades(self):
-        g, p1, p2 = Game(slug="heyoo"), Player(name="test_player1"), Player(name="test_player2")
+        g, p1, p2 = Game(slug="test_game"), Player(name="test_player1"), Player(name="test_player2")
         self.session.add_all([g, p1, p2])
         g.players = [p1, p2]
         self.session.commit()
         g.current_chancellor = p1
-        self.session.commit()
         g.freeze_player_positions()
         self.session.delete(p1)
         self.session.commit()
