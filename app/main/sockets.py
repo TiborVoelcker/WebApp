@@ -16,6 +16,7 @@ def commit_session(f):
         res = f(*args, **kwargs)
         db.session.commit()
         return res
+    return wrapped
 
 
 def authenticated_only(f):

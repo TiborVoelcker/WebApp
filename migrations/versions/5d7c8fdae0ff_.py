@@ -1,15 +1,15 @@
 """empty message
 
-Revision ID: 7e1d3d1c5600
+Revision ID: 5d7c8fdae0ff
 Revises: 
-Create Date: 2020-11-17 21:31:51.099808
+Create Date: 2020-12-09 22:14:48.317344
 
 """
 import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = '7e1d3d1c5600'
+revision = '5d7c8fdae0ff'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -23,6 +23,7 @@ def upgrade():
     sa.Column('current_state', sa.String(length=16), nullable=False),
     sa.Column('elected_policies', sa.PickleType(), nullable=False),
     sa.Column('_Game__remaining_policies', sa.PickleType(), nullable=False),
+    sa.Column('last_active', sa.DateTime(), nullable=True),
     sa.Column('_current_president_id', sa.Integer(), nullable=True),
     sa.Column('_current_chancellor_id', sa.Integer(), nullable=True),
     sa.Column('_last_president_id', sa.Integer(), nullable=True),

@@ -155,9 +155,6 @@ class TestModels(BaseCase):
         g.freeze_player_positions(scramble=True)
         self.assertTrue(all(type(player.position) is int for player in g.players))
 
-    def test_player_positions(self):
-        pass
-
     def test_game_allocation(self):
         g, p1, p2, p3 = Game(slug="test_game"), Player(name="test_player1"), Player(name="test_player2"), \
                         Player(name="test_player3")
