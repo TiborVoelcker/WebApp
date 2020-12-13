@@ -1,0 +1,76 @@
+import unittest
+
+from flask_login import current_user
+
+from app.models import Player, Game
+from app.tests.helper import BaseCase
+
+
+def login(client, username, follow_redirects=True):
+    return client.post('/login', data={"username": username}, follow_redirects=follow_redirects)
+
+
+def logout(client, follow_redirects=True):
+    return client.get('/logout', follow_redirects=follow_redirects)
+
+
+class TestRoutes(BaseCase):
+    def test_index(self):
+        with self.app.test_client() as c:
+            res = c.get('/')
+            self.assertEqual(res.status_code, 200)
+            res = c.get('/index')
+            self.assertEqual(res.status_code, 200)
+
+            g = Game(slug="test_game")
+            self.session.add(g)
+            self.session.commit()
+            res = c.post('/', data={"submit": True, "game_slug": "test_game"})
+            self.assertEqual(res.status_code, 302)
+            res = c.post('/', data={"submit": True, "game_slug": "failing"})
+            self.assertEqual(res.status_code, 200)
+
+            length = len(Game.query.all())
+            res = c.post('/', data={"new_game": True})
+            self.assertEqual(res.status_code, 302)
+            self.assertEqual(len(Game.query.all()), length+1)
+
+            res = c.post('/', data={"rejoin": True})
+            self.assertEqual(res.status_code, 200)
+            login(c, "test_player")
+            res = c.post('/', data={"rejoin": True})
+            self.assertEqual(res.status_code, 200)
+            current_user.game = g
+            self.session.commit()
+            res = c.post('/', data={"rejoin": True})
+            self.assertEqual(res.status_code, 302)
+
+    def test_login(self):
+        with self.app.test_client() as c:
+            res = c.get("/login")
+            self.assertEqual(res.status_code, 200)
+            res = login(c, "test_player", False)
+            self.assertEqual(res.status_code, 302)
+            self.assertEqual(len(Player.query.filter(Player.name == "test_player").all()), 1)
+            p = Player.query.filter(Player.name == "test_player").first()
+            self.assertTrue(p.is_authenticated)
+            self.assertEqual(p, current_user)
+            res = c.get("/login")
+            self.assertEqual(res.status_code, 302)
+
+    def test_logout(self):
+        with self.app.test_client() as c:
+            res = logout(c, False)
+            self.assertEqual(res.status_code, 302)
+            self.assertEqual(len(Player.query.filter(Player.name == "test_player").all()), 0)
+            self.assertFalse(current_user.is_authenticated)
+
+
+if __name__ == '__main__':
+    loader = unittest.TestLoader()
+    suite = unittest.TestSuite()
+
+    suite.addTests(loader.loadTestsFromTestCase(TestRoutes))
+
+    runner = unittest.TextTestRunner(verbosity=2)
+    runner.run(suite)
