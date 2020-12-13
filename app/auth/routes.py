@@ -1,5 +1,5 @@
 from flask import redirect, url_for, flash, render_template, request
-from flask_login import current_user, login_user, logout_user
+from flask_login import current_user, login_user
 from werkzeug.urls import url_parse
 
 from app import db
@@ -20,18 +20,17 @@ def index():
                 return redirect(url_for('main.game', slug=form.game_slug.data))
             else:
                 flash("Game ID is invalid.")
-                return redirect(url_for('.index'))
         if form.new_game.data:
             current_user.game = None
             g = Game()
             db.session.add(g)
             db.session.commit()
             return redirect(url_for('main.game', slug=g.slug))
-        if form.rejoin.data:
+        if form.rejoin.data and current_user.is_authenticated and current_user.game:
             return redirect(url_for('main.game', slug=current_user.game.slug))
 
     rejoin = False
-    if not current_user.is_anonymous and current_user.game:
+    if current_user.is_authenticated and current_user.game:
         rejoin = True
     return render_template('index.html', title="Home", form=form, rejoin=rejoin)
 
@@ -59,7 +58,6 @@ def login():
 def logout():
     if current_user.is_authenticated:
         db.session.delete(current_user)
-        logout_user()
         db.session.commit()
         flash(f'Successfully logged out.')
     return redirect(url_for('.index'))
