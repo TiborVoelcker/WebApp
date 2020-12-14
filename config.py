@@ -38,7 +38,7 @@ class ProductionConfig(Config):
 
 class TestingConfig(Config):
     ENV = 'development'
-    DEBUG = True
+    DEBUG = False
     TESTING = True
     LOG_TO_STDOUT = False
     LOG_TO_FILE = False
