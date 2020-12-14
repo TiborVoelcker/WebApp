@@ -65,6 +65,20 @@ class TestRoutes(BaseCase):
             self.assertEqual(len(Player.query.filter(Player.name == "test_player").all()), 0)
             self.assertFalse(current_user.is_authenticated)
 
+    def test_game(self):
+        with self.app.test_request_context():
+            with self.app.test_client() as c:
+                g = Game(slug="test_game")
+                self.session.add(g)
+                self.session.commit()
+                res = c.get("/game/test_game")
+                self.assertEqual(res.status_code, 302)
+                login(c, "test_player")
+                res = c.get("/game/test_game")
+                self.assertEqual(res.status_code, 200)
+                res = c.get("/game/failing")
+                self.assertEqual(res.status_code, 404)
+
 
 if __name__ == '__main__':
     loader = unittest.TestLoader()
