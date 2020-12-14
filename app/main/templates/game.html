@@ -10,7 +10,7 @@
 {% block body %}
 <main id="game">
     {% if game %}
-    <p href="{{ url_for('.game', slug=game.slug) }}">Send this link to invite friends, or have them enter the code manually: {{ url_for('.join', slug=game.slug, _external=True) }}</p>
+    <p href="{{ url_for('.game', slug=game.slug) }}">Send this link to invite friends, or have them enter the code manually: {{ url_for('.game', slug=game.slug, _external=True) }}</p>
     <ul id="players">
         {% for player in game.players %}
         <li id="{{ player.id }}"><a>{{ player.name }}</a></li>
