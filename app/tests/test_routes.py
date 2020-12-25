@@ -15,8 +15,8 @@ class TestRoutes(BaseCase):
             self.assertEqual(res.status_code, 200)
 
             g = Game(slug="test_game")
-            self.session.add(g)
-            self.session.commit()
+            self.db.session.add(g)
+            self.db.session.commit()
             res = c.post('/', data={"submit": True, "game_slug": "test_game"})
             self.assertEqual(res.status_code, 302)
             res = c.post('/', data={"submit": True, "game_slug": "failing"})
@@ -33,7 +33,7 @@ class TestRoutes(BaseCase):
             res = c.post('/', data={"rejoin": True})
             self.assertEqual(res.status_code, 200)
             current_user.game = g
-            self.session.commit()
+            self.db.session.commit()
             res = c.post('/', data={"rejoin": True})
             self.assertEqual(res.status_code, 302)
 
@@ -61,8 +61,8 @@ class TestRoutes(BaseCase):
         with self.app.test_request_context():
             with self.app.test_client() as c:
                 g = Game(slug="test_game")
-                self.session.add(g)
-                self.session.commit()
+                self.db.session.add(g)
+                self.db.session.commit()
                 res = c.get("/game/test_game")
                 self.assertEqual(res.status_code, 302)
                 login(c, "test_player")

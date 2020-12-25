@@ -8,13 +8,14 @@ class BaseCase(unittest.TestCase):
         self.app = create_app("testing")
         self.app_context = self.app.app_context()
         self.app_context.push()
-        db.drop_all()
-        db.create_all()
-        self.session = db.session
+        self.db = db
+        self.db.drop_all()
+        self.db.create_all()
 
     def tearDown(self):
-        db.session.close_all()
-        db.drop_all()
+        self.db.session.remove()
+        self.db.session.close_all()
+        self.db.drop_all()
         self.app_context.pop()
 
 
