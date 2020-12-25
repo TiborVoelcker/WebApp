@@ -3,15 +3,7 @@ import unittest
 from flask_login import current_user
 
 from app.models import Player, Game
-from app.tests.helper import BaseCase
-
-
-def login(client, username, follow_redirects=True):
-    return client.post('/login', data={"username": username}, follow_redirects=follow_redirects)
-
-
-def logout(client, follow_redirects=True):
-    return client.get('/logout', follow_redirects=follow_redirects)
+from app.tests.helper import BaseCase, login, logout
 
 
 class TestRoutes(BaseCase):

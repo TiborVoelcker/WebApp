@@ -16,3 +16,11 @@ class BaseCase(unittest.TestCase):
         db.session.close_all()
         db.drop_all()
         self.app_context.pop()
+
+
+def login(client, username, follow_redirects=True):
+    return client.post('/login', data={"username": username}, follow_redirects=follow_redirects)
+
+
+def logout(client, follow_redirects=True):
+    return client.get('/logout', follow_redirects=follow_redirects)
