@@ -3,7 +3,7 @@ import random
 
 from flask import request, current_app
 from flask_login import current_user
-from flask_socketio import emit, join_room, leave_room
+from flask_socketio import emit, join_room
 
 from app import socketio, db
 from app.models import Game
@@ -25,6 +25,8 @@ def check_game_state(state):
         @functools.wraps(f)
         def wrapped(*args, **kwargs):
             g = current_user.game
+            if g is None:
+                return False, 'You are not in a game!'
             if g.current_state == state:
                 return f(g, *args, **kwargs)
             else:
@@ -49,20 +51,19 @@ def handle_connect():
     current_user.sid = request.sid
     db.session.commit()
 
-    if s or request.args["game"]:
-        return handle_join_game(s)
+    if "game" in request.args:
+        return handle_join_game(request.args["game"])
     else:
         return True
 
 
 @socketio.on('join game')
 @authenticated_only
-@commit_session
-def handle_join_game(s=None):
-    if not current_user.game: # joining new
-        slug = s or request.args["game"]
-        g = Game.query.get(slug)
-
+def handle_join_game(slug):
+    g = Game.query.get(slug)
+    if g is None:
+        return False, f"Invalid game! ({slug} does not exist.)"
+    if not current_user.game:  # joining new
         if g.current_state == "pre_game":
             current_user.game = g
             db.session.commit()
@@ -74,23 +75,14 @@ def handle_join_game(s=None):
         else:
             return False, "Game already started!"
     else:
-        if request.referrer.split()[-1] == current_user.game.slug: # rejoined this game game
+        if slug == current_user.game.slug:  # rejoined this game
+            join_room(g.slug)
+            emit("player joined", player_to_tuple(current_user), room=g.slug, skip_sid=current_user.sid)
+
+            current_app.logger.info(f"{g} - {current_user} joined.")
             return True
         else:
-            return False, f"You are already in a game! ({current_user.game})" # already in other game
-
-
-@socketio.on('disconnect')
-@authenticated_only
-def handle_disconnect():
-    g = current_user.game
-    db.session.commit()
-
-    leave_room(g.slug)
-    emit("player left", player_to_tuple(current_user), room=g.slug)
-
-    current_app.logger.info(f"{g} - {current_user} disconnected.")
-    return True
+            return False, f"You are already in a game! ({current_user.game})"  # already in other game
 
 
 @socketio.on('start game')

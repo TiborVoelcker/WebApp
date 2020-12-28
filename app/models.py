@@ -172,5 +172,5 @@ def receive_after_update(mapper, connection, target):
 
 
 @login.user_loader
-def load_user(id):
-    return Player.query.get(int(id))
+def load_user(user_id):
+    return Player.query.get(int(user_id))
