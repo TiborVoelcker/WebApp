@@ -1,5 +1,6 @@
 import unittest
 
+from flask import url_for
 from flask_login import current_user
 
 from app.models import Player, Game
@@ -27,31 +28,27 @@ class TestRoutes(BaseCase):
             self.assertEqual(res.status_code, 302)
             self.assertEqual(len(Game.query.all()), length+1)
 
-            res = c.post('/', data={"rejoin": True})
-            self.assertEqual(res.status_code, 200)
-            login(c, "test_player")
-            res = c.post('/', data={"rejoin": True})
-            self.assertEqual(res.status_code, 200)
-            current_user.game = g
-            self.db.session.commit()
-            res = c.post('/', data={"rejoin": True})
-            self.assertEqual(res.status_code, 302)
-
     def test_login(self):
         with self.app.test_client() as c:
-            res = c.get("/login")
+            g = Game(slug="test_game")
+            self.db.session.add(g)
+            self.db.session.commit()
+            res = c.get(url_for("main.login", slug=g.slug))
             self.assertEqual(res.status_code, 200)
-            res = login(c, "test_player", False)
+            res = login(c, g.slug, "test_player", False)
             self.assertEqual(res.status_code, 302)
             self.assertEqual(len(Player.query.filter(Player.name == "test_player").all()), 1)
             p = Player.query.filter(Player.name == "test_player").first()
             self.assertTrue(p.is_authenticated)
             self.assertEqual(p, current_user)
-            res = c.get("/login")
-            self.assertEqual(res.status_code, 302)
+            self.assertEqual(p.game, g)
 
     def test_logout(self):
         with self.app.test_client() as c:
+            g = Game(slug="test_game")
+            self.db.session.add(g)
+            self.db.session.commit()
+            login(c, g.slug, "test_player", False)
             res = logout(c, False)
             self.assertEqual(res.status_code, 302)
             self.assertEqual(len(Player.query.filter(Player.name == "test_player").all()), 0)

@@ -1,23 +1,15 @@
 import functools
 import random
 
-from flask import request, current_app
-from flask_login import current_user
+from flask import request, current_app, session
+from flask_login import current_user, login_user
 from flask_socketio import emit, join_room
+from werkzeug.datastructures import ImmutableMultiDict
 
 from app import socketio, db
-from app.models import Game
-from app.models import Player
-
-
-def authenticated_only(f):
-    @functools.wraps(f)
-    def wrapped(*args, **kwargs):
-        if not current_user.is_authenticated:
-            return False
-        else:
-            return f(*args, **kwargs)
-    return wrapped
+from app.main.forms import LoginForm, AdminForm
+from app.main.helper import player_to_tuple, tuple_to_player
+from app.models import Player, Game
 
 
 def check_game_state(state):
@@ -25,94 +17,81 @@ def check_game_state(state):
         @functools.wraps(f)
         def wrapped(*args, **kwargs):
             g = current_user.game
-            if g is None:
-                return False, 'You are not in a game!'
-            if g.current_state == state:
-                return f(g, *args, **kwargs)
-            else:
+            if not g.current_state == state:
                 return False, 'You cannot do that right now!'
+            return f(g, *args, **kwargs)
 
         return wrapped
 
     return wrapper
 
 
-def tuple_to_player(player_tuple):
-    return Player.query.get(player_tuple[0])
+@socketio.on('connect', namespace="/lobby")
+def handle_lobby_connect():
+    g = Game.query.get_or_404(request.args.get("game"))
+    join_room(g.slug, namespace="/lobby")
+
+    current_app.logger.info(f"{g} - {request.sid} connected to the lobby.")
+    return dict(success=True, status_code=200)
 
 
-def player_to_tuple(player):
-    return player.id, player.name
-
-
-@socketio.on('connect')
-@authenticated_only
-def handle_connect():
-    current_user.sid = request.sid
-    db.session.commit()
-
-    if "game" in request.args:
-        return handle_join_game(request.args["game"])
-    else:
-        return True
-
-
-@socketio.on('join game')
-@authenticated_only
-def handle_join_game(slug):
-    g = Game.query.get(slug)
-    if g is None:
-        return False, f"Invalid game! ({slug} does not exist.)"
-    if not current_user.game:  # joining new
-        if g.current_state == "pre_game":
-            current_user.game = g
-            db.session.commit()
-            join_room(g.slug)
-            emit("player joined", player_to_tuple(current_user), room=g.slug, skip_sid=current_user.sid)
-
-            current_app.logger.info(f"{g} - {current_user} joined.")
-            return True
-        else:
-            return False, "Game already started!"
-    else:
-        if slug == current_user.game.slug:  # rejoined this game
-            join_room(g.slug)
-            emit("player joined", player_to_tuple(current_user), room=g.slug, skip_sid=current_user.sid)
-
-            current_app.logger.info(f"{g} - {current_user} joined.")
-            return True
-        else:
-            return False, f"You are already in a game! ({current_user.game})"  # already in other game
-
-
-@socketio.on('start game')
-@authenticated_only
-@check_game_state("pre_game")
-def handle_start_game(g):
-    if len(g.players) > 10 or len(g.players) < 5:
-        roles = g.get_roles()
-        for player in g.players:
-            if player.get_role() == "fascist":
-                join_room(f"{g.slug} - fascist", sid=player.sid)
-        g.current_state = "nomination"
+@socketio.on('login', namespace="/lobby")
+def handle_login(form_data):
+    g = Game.query.get_or_404(request.args.get("game"))
+    print(session)
+    print(current_user)
+    print(request.cookies)
+    form = LoginForm(ImmutableMultiDict(form_data))
+    if form.validate():
+        if current_user.is_authenticated:
+            return dict(success=False, status_code=403, message="You are already logged in.")
+        user = Player(name=form.username.data, game=g, sid=request.sid)
+        db.session.add(user)
         db.session.commit()
+        login_user(user, remember=form.remember_me.data)
+        session["test"] = "testing"
+
+        emit("players", g.player_list(), room=g.slug, namespace="/lobby")
+
+        current_app.logger.info(f"{g} - {request.sid} logged in as {current_user}.")
+        return dict(success=True, status_code=200)
+    return dict(success=False, message="Form is not valid!", status_code=400)
+
+
+@socketio.on('admin', namespace="/lobby")
+def handle_admin(form_data):
+    g = Game.query.get_or_404(request.args.get("game"))
+    form = AdminForm(ImmutableMultiDict(form_data))
+    if form.validate():
+        if len(g.players) > 10 or len(g.players) < 5:
+            return dict(success=False, status_code=403,
+                        message=f'The number of players need to be between 5 and 10 players! '
+                                f'(currently {len(g.players)})')
+        g.get_roles()
+        g.current_state = "nomination"
         g.current_president = random.choice(g.players)
         db.session.commit()
-        emit("new president", player_to_tuple(g.current_president), room=g.slug)
-        emit("nominate chancellor", room=g.current_president.sid)
 
-        emit("roles", roles, room=f"{g.slug} - fascist")
-        if len(g.players) < 7:
-            emit("roles", roles, room=g.get_hitler().sid)
+        emit("game started", namespace="/lobby")
 
         current_app.logger.info(f"{g} - Game started. {g.current_president} is the new president")
-        return True
+        return dict(success=True, status_code=200)
     else:
-        return False, f'The number of players need to be between 5 and 10 players! (currently {len(g.players)})'
+        return dict(success=False, message="Form is not valid!", status_code=400)
+
+
+@socketio.on('connect', namespace="/game")
+def handle_game_connect():
+    if current_user.is_anonymous:
+        return False
+    g = current_user.game
+    join_room(g.slug, namespace="/game")
+
+    current_app.logger.info(f"{g} - {current_user} connected to the game.")
+    return dict(success=True, status_code=200)
 
 
 @socketio.on('nomination')
-@authenticated_only
 @check_game_state("nomination")
 def handle_nomination(g, nomination):
     nomination = tuple_to_player(nomination)
@@ -132,7 +111,6 @@ def handle_nomination(g, nomination):
 
 
 @socketio.on('election')
-@authenticated_only
 @check_game_state("election")
 def handle_election(g, vote):
     if current_user.get_vote() is None:
@@ -168,7 +146,6 @@ def handle_election(g, vote):
 
 
 @socketio.on('policies president')
-@authenticated_only
 @check_game_state("policies_president")
 def handle_policies_president(g, policies):
     if g.current_president == current_user:
@@ -189,7 +166,6 @@ def handle_policies_president(g, policies):
 
 
 @socketio.on('policies chancellor')
-@authenticated_only
 @check_game_state("policies_chancellor")
 def handle_chancellor_policy_chosen(g, policy):
     if g.current_chancellor == current_user:

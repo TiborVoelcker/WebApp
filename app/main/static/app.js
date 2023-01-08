@@ -1,4 +1,4 @@
-const socket = io({query: {game: game_slug}});
+const socket = io("/game", {query: {game: game_slug}});
 
 document.addEventListener("DOMContentLoaded", function(event) {
     console.log("DOM fully loaded and parsed");
@@ -10,25 +10,6 @@ document.addEventListener("DOMContentLoaded", function(event) {
             else {console.log(message);}
         })
     });
-})
-
-socket.on('player joined', function(data) {
-    if (!document.getElementById(data.id)) {
-        var players = document.getElementById("players");
-        var li = document.createElement("li");
-        var a = document.createElement("a");
-        li.id = data.id;
-        a.textContent = data.name;
-        li.appendChild(a);
-        players.appendChild(li);
-    }
-})
-
-socket.on('player left', function(data) {
-    if (document.getElementById(data.id)) {
-        var player = document.getElementById(data.id);
-        player.parentNode.removeChild(player);
-    }
 })
 
 socket.on('new president', function (data) {

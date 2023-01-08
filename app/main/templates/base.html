@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    {{ JSGlue.include() }}
+    {% block scripts %}
+    {% endblock %}
+    {% if title %}
+        <title>{{ title }} - Secret Hitler</title>
+    {% else %}
+        <title>Secret Hitler</title>
+    {% endif %}
+</head>
+<body>
+    <div>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <ul>
+                {% for message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+    </div>
+    <hr>
+    {% block body %}
+    {% endblock %}
+</body>
+</html>

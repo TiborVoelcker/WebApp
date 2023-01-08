@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block body %}
+{% if game %}
+    {% if form %}
+    <form action="" method="post" novalidate>
+        {{ form.hidden_tag() }}
+        <p>
+            {{ form.username.label }}<br>
+            {{ form.username(size=32) }}
+            {% for error in form.username.errors %}
+                <span style="color: #ff0000;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>{{ form.remember_me() }} {{ form.remember_me.label }}</p>
+        <p>{{ form.submit() }}</p>
+    </form>
+    {% endif %}
+{% else %}
+    <p>Something went wrong.</p>
+{% endif %}
+{% endblock %}

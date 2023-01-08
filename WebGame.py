@@ -11,4 +11,4 @@ def make_shell_context():
 
 
 if __name__ == '__main__':
-    socketio.run(app, log_output=False, use_reloader=False)
+    socketio.run(app, log_output=app.config["LOG_SOCKETIO"], use_reloader=False)

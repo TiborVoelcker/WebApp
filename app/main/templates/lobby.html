@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js" integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ==" crossorigin="anonymous"></script>
+<script>
+    const game_slug = "{{ game.slug }}";
+</script>
+<script type="text/javascript" src = "{{ url_for('.static', filename='lobby.js', _external=True) }}"></script>
+<link rel="stylesheet" href="{{ url_for('main.static', filename='main.css') }}">
+{% endblock %}
+
+{% block body %}
+{% if game %}
+    {% if loginform %}
+    <form id="LoginForm">
+        {{ loginform.hidden_tag() }}
+        <p>
+            {{ loginform.username.label }}<br>
+            {{ loginform.username(size=32) }}
+            {% for error in loginform.username.errors %}
+                <span style="color: #ff0000;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>{{ loginform.remember_me() }} {{ loginform.remember_me.label }}</p>
+        <p>{{ loginform.submit() }}</p>
+    </form>
+    {% endif %}
+    {% if adminform %}
+    <form id="AdminForm">
+        {{ adminform.hidden_tag() }}
+        <p>{{ adminform.start() }}</p>
+    </form>
+    {% endif %}
+    <ul id="players">
+        {% for player in game.players %}
+        <li id="{{ player.id }}"><a>{{ player.name }}</a></li>
+        {% endfor %}
+    </ul>
+    {% if logged %}
+        <p>LOGGED IN!!</p>
+    {% endif %}
+{% else %}
+    <p>Something went wrong.</p>
+{% endif %}
+{% endblock %}

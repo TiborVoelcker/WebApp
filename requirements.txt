@@ -6,6 +6,7 @@ dnspython==1.16.0
 eventlet==0.29.1
 Flask==1.1.2
 Flask-APScheduler==1.11.0
+Flask-JSGlue==0.3.1
 Flask-Login==0.5.0
 Flask-Migrate==2.5.3
 Flask-SocketIO==4.3.1

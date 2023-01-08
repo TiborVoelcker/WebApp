@@ -15,10 +15,16 @@ class Config(object):
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///' + os.path.join(basedir, 'app.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+    SERVER_NAME = '127.0.0.1:5000'
+    SESSION_COOKIE_NAME = '127.0.0.1:5000'
+    SESSION_COOKIE_DOMAIN = '127.0.0.1:5000'
+    SESSION_TYPE = 'sqlalchemy'
+
     DEBUG = False
     TESTING = False
     LOG_TO_STDOUT = False
     LOG_TO_FILE = True
+    LOG_SOCKETIO = False
     SCHEDULER_API_ENABLED = False
     SCHEDULER_ENABLED = True
     INACTIVE_TIME_DELAY = timedelta(hours=2)
@@ -30,6 +36,7 @@ class DevelopmentConfig(Config):
     LOG_TO_STDOUT = True
     LOG_TO_FILE = False
     SCHEDULER_ENABLED = False
+    LOG_SOCKETIO = True
 
 
 class ProductionConfig(Config):
@@ -37,7 +44,7 @@ class ProductionConfig(Config):
 
 
 class TestingConfig(Config):
-    ENV = 'development'
+    ENV = 'testing'
     DEBUG = False
     TESTING = True
     LOG_TO_STDOUT = False

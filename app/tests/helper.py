@@ -1,5 +1,7 @@
 import unittest
 
+from flask import url_for
+
 from app import create_app, db
 
 
@@ -19,8 +21,8 @@ class BaseCase(unittest.TestCase):
         self.app_context.pop()
 
 
-def login(client, username, follow_redirects=True):
-    return client.post('/login', data={"username": username}, follow_redirects=follow_redirects)
+def login(client, slug, username, follow_redirects=True):
+    return client.post(url_for("main.login", slug=slug), data={"username": username}, follow_redirects=follow_redirects)
 
 
 def logout(client, follow_redirects=True):

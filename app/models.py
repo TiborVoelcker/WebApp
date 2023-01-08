@@ -30,7 +30,7 @@ class Player(db.Model, UserMixin):
     __role = db.Column(db.String(16))
     __voted = db.Column(db.Boolean, nullable=True, default=None)
 
-    _game_slug = db.Column(db.String(64), db.ForeignKey('game.slug'))
+    _game_slug = db.Column(db.String(64), db.ForeignKey('game.slug'), nullable=False)
     game = db.relationship("Game", back_populates="players", foreign_keys=_game_slug)
 
     def __repr__(self):
@@ -67,24 +67,25 @@ class Game(db.Model):
     _current_president_id = db.Column(db.Integer, db.ForeignKey('player.id', use_alter=True))
     current_president = db.relationship("Player", foreign_keys=_current_president_id,
                                         primaryjoin="and_(Game._current_president_id == Player.id,"
-                                                    "Game.slug == Player._game_slug)")
+                                                    "Game.slug == Player._game_slug)", post_update=True)
 
     _current_chancellor_id = db.Column(db.Integer, db.ForeignKey('player.id', use_alter=True))
     current_chancellor = db.relationship("Player", foreign_keys=_current_chancellor_id,
                                          primaryjoin="and_(Game._current_chancellor_id == Player.id,"
-                                                     "Game.slug == Player._game_slug)")
+                                                     "Game.slug == Player._game_slug)", post_update=True)
 
     _last_president_id = db.Column(db.Integer, db.ForeignKey('player.id', use_alter=True))
     last_president = db.relationship("Player", foreign_keys=_last_president_id,
                                      primaryjoin="and_(Game._last_president_id == Player.id,"
-                                                 "Game.slug == Player._game_slug)")
+                                                 "Game.slug == Player._game_slug)", post_update=True)
 
     _last_chancellor_id = db.Column(db.Integer, db.ForeignKey('player.id', use_alter=True))
     last_chancellor = db.relationship("Player", foreign_keys=_last_chancellor_id,
                                       primaryjoin="and_(Game._last_chancellor_id == Player.id,"
-                                                  "Game.slug == Player._game_slug)")
+                                                  "Game.slug == Player._game_slug)", post_update=True)
 
-    players = db.relationship('Player', back_populates="game", foreign_keys=Player._game_slug, order_by=Player.position)
+    players = db.relationship('Player', back_populates="game", foreign_keys=Player._game_slug, order_by=Player.position,
+                              cascade="all, delete")
 
     @validates("current_state")
     def validate_current_state(self, key, state):
@@ -95,12 +96,6 @@ class Game(db.Model):
     def validate_elected_policies(self, key, policies):
         assert all(policy in [0, 1] for policy in policies) and type(policies) is tuple
         return policies
-
-    @validates('players', include_removes=True)
-    def validate_game(self, key, player, is_remove):
-        if is_remove:
-            player.position = None
-        return player
 
     def __repr__(self):
         return self.slug
@@ -157,13 +152,8 @@ class Game(db.Model):
                 return player
         raise RuntimeError("No Hitler in current game found!")
 
-
-@event.listens_for(db.session, 'before_flush')
-def receive_before_flush(session, flush, instances):
-    games = filter(lambda g: isinstance(g, Game) and g.players, session.deleted)
-    for g in games:
-        for p in g.players:
-            p.position = None
+    def player_list(self):
+        return [(player.id, player.name,) for player in self.players]
 
 
 @event.listens_for(Game, 'before_update')
@@ -173,4 +163,4 @@ def receive_after_update(mapper, connection, target):
 
 @login.user_loader
 def load_user(user_id):
-    return Player.query.get(int(user_id))
+    return Player.query.get(user_id)

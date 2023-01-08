@@ -4,41 +4,39 @@
 <script type="text/javascript">const game_slug = "{{ game.slug }}"</script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I=" crossorigin="anonymous"></script>
 <script type="text/javascript" src = "{{ url_for('main.static', filename='app.js') }}"></script>
+<link rel="stylesheet" href="{{ url_for('main.static', filename='main.css') }}">
 <link rel="stylesheet" href="{{ url_for('main.static', filename='game.css') }}">
 {% endblock %}
 
 {% block body %}
 <main id="game">
-    {% if game %}
+{% if game %}
     <p href="{{ url_for('.game', slug=game.slug) }}">Send this link to invite friends, or have them enter the code manually: {{ url_for('.game', slug=game.slug, _external=True) }}</p>
     <ul id="players">
         {% for player in game.players %}
         <li id="{{ player.id }}"><a>{{ player.name }}</a></li>
         {% endfor %}
     </ul>
-    {% else %}
-    <p>Something went wrong.</p>
-    {% endif %}
-    <div id="pre_game" class="section">
-        <button type="button" id="start_game">Start Game</button>
-    </div>
     <div id="post_game" class="section" hidden>
         <p>Game ended.</p>
     </div>
-</main>
-<div class="popup" id="nomination" hidden>
-    <p>Select your nomination.</p>
-    <ul id="nomination_list">
-    </ul>
-</div>
-<div class="popup" id="election" hidden>
-    <p>Vote yes or No.</p>
-    <button type="button" id="yes">Yes</button>
-    <button type="button" id="no">No</button>
-</div>
-<div class="popup" id="policies" hidden>
-    <p>Select policies.</p>
-    <ul id="policy_list">
-    </ul>
-</div>
+    </main>
+    <div class="popup" id="nomination" hidden>
+        <p>Select your nomination.</p>
+        <ul id="nomination_list">
+        </ul>
+    </div>
+    <div class="popup" id="election" hidden>
+        <p>Vote yes or No.</p>
+        <button type="button" id="yes">Yes</button>
+        <button type="button" id="no">No</button>
+    </div>
+    <div class="popup" id="policies" hidden>
+        <p>Select policies.</p>
+        <ul id="policy_list">
+        </ul>
+    </div>
+{% else %}
+    <p>Something went wrong.</p>
+{% endif %}
 {% endblock %}
